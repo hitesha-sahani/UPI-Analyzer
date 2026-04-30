@@ -46,7 +46,8 @@ def _iqr_flags(df: pd.DataFrame) -> pd.Series:
 def _odd_hour_flags(df: pd.DataFrame) -> pd.Series:
     """Flag transactions in late-night / early-morning hours."""
     hour = df["hour"]
-    return (hour >= ODD_HOUR_START) | (hour <= ODD_HOUR_END)
+    has_time = df["has_time"] if "has_time" in df.columns else pd.Series(True, index=df.index)
+    return has_time & ((hour >= ODD_HOUR_START) | (hour <= ODD_HOUR_END))
 
 
 def _round_number_flags(df: pd.DataFrame) -> pd.Series:

@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,7 +7,7 @@ from pathlib import Path
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="UPI Spend Analyzer",
+    page_title="ArthaLab Money OS",
     page_icon="💸",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -255,8 +253,8 @@ with st.sidebar:
     st.markdown("""
     <div style='text-align:center; padding: 20px 0 10px;'>
         <div style='font-size:2.2rem;'>💸</div>
-        <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.1rem; color:#E0E0F0;'>UPI Analyzer</div>
-        <div style='font-size:0.72rem; color:#6C63FF; letter-spacing:0.1em; text-transform:uppercase;'>Spend Intelligence</div>
+        <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.1rem; color:#151515;'>ArthaLab</div>
+        <div style='font-size:0.72rem; color:#1769ff; letter-spacing:0.1em; text-transform:uppercase;'>Money OS</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -265,9 +263,7 @@ with st.sidebar:
     page = st.radio(
         "Navigate",
         [
-            "📊 Overview", "🏷️ Categories", "🔍 Anomalies", "🧠 Insights",
-            "🎯 Budget Tracker", "🔮 Forecast", "🏦 Multi-Account",
-            "🤖 AI Advisor", "📈 Benchmarks", "📋 Transactions",
+            "Dashboard", "Learn", "Leaks", "Transactions", "AI Coach",
         ],
         label_visibility="collapsed",
     )
@@ -417,6 +413,176 @@ anomaly_info  = get_anomaly_summary(df)
 insights      = generate_full_insights(df)
 nudges        = generate_nudges(df, insights["savings_rate"], insights["subscriptions"])
 
+
+def _inr(amount: float) -> str:
+    amount = float(amount or 0)
+    if amount >= 100000:
+        return f"₹{amount / 100000:.1f}L"
+    if amount >= 1000:
+        return f"₹{amount / 1000:.1f}K"
+    return f"₹{amount:,.0f}"
+
+
+def compute_money_score(df: pd.DataFrame, insights: dict, anomaly_info: dict) -> dict:
+    savings_rate = float(insights["savings_rate"].get("rate", 0) or 0)
+    spend = float(insights["savings_rate"].get("spend", 0) or 0)
+    subs = insights["subscriptions"]
+    monthly_subs = float(subs["monthly_cost"].sum()) if not subs.empty else 0
+    bnpl_spend = float(df[(df["type"] == "Debit") & (df["category"] == "BNPL & Credit")]["amount"].sum())
+    food_spend = float(df[(df["type"] == "Debit") & (df["category"] == "Food & Dining")]["amount"].sum())
+    food_share = (food_spend / spend * 100) if spend else 0
+    high_anomalies = int(anomaly_info.get("high_severity", 0) or 0)
+
+    score = 55
+    score += min(max(savings_rate, 0), 40) * 0.9
+    score -= min(monthly_subs / 600, 12)
+    score -= min(bnpl_spend / 2500, 12)
+    score -= min(max(food_share - 12, 0) * 0.7, 10)
+    score -= min(high_anomalies * 2, 10)
+    score = int(max(0, min(100, round(score))))
+
+    if score >= 80:
+        label = "Strong"
+        summary = "You are saving well. The main job is trimming recurring leaks."
+    elif score >= 60:
+        label = "Stable"
+        summary = "Your basics look okay, but a few habits are quietly raising spend."
+    elif score >= 40:
+        label = "Watch"
+        summary = "Spending needs attention this month, especially repeat charges."
+    else:
+        label = "At risk"
+        summary = "Focus on one immediate spending reset before adding more goals."
+
+    return {
+        "score": score,
+        "label": label,
+        "summary": summary,
+        "monthly_subs": monthly_subs,
+        "bnpl_spend": bnpl_spend,
+        "food_share": food_share,
+    }
+
+
+def build_leak_cards(df: pd.DataFrame, insights: dict) -> list:
+    cards = []
+    subs = insights["subscriptions"]
+    if not subs.empty:
+        cancelable = subs[
+            subs["merchant"].str.contains(
+                "netflix|spotify|prime|hotstar|youtube|zee5|sony|apple|cult|gym",
+                case=False,
+                na=False,
+            )
+        ]
+        target = cancelable if not cancelable.empty else subs.head(3)
+        monthly = float(target["monthly_cost"].sum())
+        cards.append({
+            "title": "Subscription audit",
+            "amount": monthly,
+            "detail": f"{len(target)} recurring charges need a yes/no review.",
+            "action": f"Review {', '.join(target['merchant'].head(3).tolist())} and cancel one unused plan.",
+        })
+
+    food = df[(df["type"] == "Debit") & (df["category"] == "Food & Dining")]
+    if not food.empty:
+        monthly_food = float(food["amount"].sum() / max(df["month"].nunique(), 1))
+        cards.append({
+            "title": "Food delivery drift",
+            "amount": monthly_food,
+            "detail": f"{len(food)} food transactions across {df['month'].nunique()} months.",
+            "action": f"Cap food orders next month to save about {_inr(monthly_food * 0.25)}.",
+        })
+
+    bnpl = df[(df["type"] == "Debit") & (df["category"] == "BNPL & Credit")]
+    if not bnpl.empty:
+        cards.append({
+            "title": "BNPL / credit pressure",
+            "amount": float(bnpl["amount"].sum()),
+            "detail": f"{len(bnpl)} pay-later or credit-linked payments found.",
+            "action": "Avoid new BNPL transactions until these payments clear.",
+        })
+
+    flagged = df[(df["type"] == "Debit") & (df["anomaly_score"] >= 3)].copy()
+    if not flagged.empty:
+        cards.append({
+            "title": "Large unusual payments",
+            "amount": float(flagged["amount"].sum()),
+            "detail": f"{len(flagged)} high-signal transactions deserve a quick check.",
+            "action": f"Verify the largest one: {flagged.sort_values('amount', ascending=False).iloc[0]['merchant']}.",
+        })
+
+    return sorted(cards, key=lambda x: x["amount"], reverse=True)
+
+
+def best_next_action(leaks: list, score: dict) -> str:
+    if leaks:
+        top = leaks[0]
+        if top["title"] == "Large unusual payments":
+            return f"{top['action']} Amount to verify: {_inr(top['amount'])}."
+        return f"{top['action']} Potential monthly impact: {_inr(top['amount'])}."
+    if score["score"] >= 80:
+        return "Set an automatic transfer for the first day after salary. Your savings rhythm is already strong."
+    return "Set one category cap for the next 7 days and review again after a week."
+
+
+def build_learning_cards(df: pd.DataFrame, cat_summary: pd.DataFrame, insights: dict, leaks: list) -> list:
+    cards = []
+    savings = insights["savings_rate"]
+    top_cat = cat_summary.iloc[0] if not cat_summary.empty else None
+    velocity = insights["spend_velocity"]
+    guilt = insights["guilt_merchant"]
+
+    cards.append({
+        "title": "Your money personality",
+        "lesson": (
+            f"You save {savings['rate']}% of incoming money. "
+            "That means your baseline discipline is strong; the next level is reducing invisible repeat spends."
+            if savings["rate"] >= 25
+            else f"You save {savings['rate']}% of incoming money. First focus on one repeatable spending limit, not a full budget overhaul."
+        ),
+    })
+
+    if top_cat is not None:
+        cards.append({
+            "title": f"Why {top_cat['category']} matters",
+            "lesson": (
+                f"This category is {top_cat['percentage']}% of your debit spend. "
+                "A small improvement here changes your month more than cutting tiny categories."
+            ),
+        })
+
+    cards.append({
+        "title": "Your daily burn rate",
+        "lesson": (
+            f"Your average debit burn is {_inr(velocity['avg_daily'])}/day. "
+            f"A 10% slowdown is roughly {_inr(velocity['avg_daily'] * 3)} saved every 30 days."
+        ),
+    })
+
+    if guilt:
+        cards.append({
+            "title": "Your repeat habit",
+            "lesson": (
+                f"{guilt['merchant']} appears {guilt['visits']} times and totals {_inr(guilt['total'])}. "
+                "This is not about guilt; it is a visible habit loop you can cap."
+            ),
+        })
+
+    if leaks:
+        cards.append({
+            "title": "The first lever to pull",
+            "lesson": leaks[0]["action"],
+        })
+
+    return cards
+
+
+money_score = compute_money_score(df, insights, anomaly_info)
+leak_cards = build_leak_cards(df, insights)
+next_action = best_next_action(leak_cards, money_score)
+learning_cards = build_learning_cards(df, cat_summary, insights, leak_cards)
+
 # ── Session state init ──────────────────────────────────────────────────────────
 if "budgets" not in st.session_state:
     st.session_state.budgets = DEFAULT_BUDGETS.copy()
@@ -427,6 +593,111 @@ if "ai_context" not in st.session_state:
         df, cat_summary, insights, anomaly_info
     )
 
+st.markdown("""
+<style>
+:root {
+    --mos-bg: #f7f5f0;
+    --mos-panel: #ffffff;
+    --mos-ink: #151515;
+    --mos-muted: #6c675f;
+    --mos-line: #ded9cf;
+    --mos-accent: #1769ff;
+}
+.stApp { background: var(--mos-bg); color: var(--mos-ink); }
+section[data-testid="stSidebar"] {
+    background: #ffffff;
+    border-right: 1px solid var(--mos-line);
+}
+.block-container { max-width: 1180px; padding-top: 1.25rem; }
+.hero {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 8px 0 20px;
+    margin-bottom: 8px;
+}
+.hero::after { content: none; }
+.hero h1 { color: var(--mos-ink); font-size: 2.05rem; letter-spacing: 0; }
+.hero p { color: var(--mos-muted); font-size: 0.94rem; }
+.kpi-card, .money-card, .insight-card, .action-card, .leak-card {
+    background: var(--mos-panel);
+    border: 1px solid var(--mos-line);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(20,20,20,0.04);
+}
+.kpi-card::before { content: none; }
+.kpi-card:hover { transform: none; box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
+.kpi-value { color: var(--mos-ink); font-family: 'DM Sans', sans-serif; font-size: 1.55rem; }
+.kpi-label { color: var(--mos-muted); letter-spacing: 0; text-transform: none; }
+.section-header { color: var(--mos-ink); border-bottom: 1px solid var(--mos-line); letter-spacing: 0; }
+.section-header::after { background: var(--mos-accent); width: 28px; }
+div[data-testid="stPlotlyChart"] {
+    background: var(--mos-panel);
+    border: 1px solid var(--mos-line);
+    border-radius: 8px;
+}
+.money-score {
+    font-size: 4.6rem;
+    line-height: 1;
+    color: var(--mos-ink);
+    font-weight: 800;
+    letter-spacing: 0;
+}
+.money-card { padding: 24px; min-height: 230px; }
+.insight-card, .leak-card, .action-card { padding: 18px 20px; margin-bottom: 12px; }
+.micro-label { color: var(--mos-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.card-title { color: var(--mos-ink); font-weight: 700; font-size: 1rem; margin-top: 6px; }
+.card-detail { color: var(--mos-muted); font-size: 0.9rem; line-height: 1.5; margin-top: 6px; }
+.amount-line { color: var(--mos-ink); font-weight: 800; font-size: 1.6rem; margin-top: 8px; }
+.action-card { background: #101010; color: #ffffff; border-color: #101010; }
+.action-card .micro-label, .action-card .card-detail { color: #cfcfcf; }
+.action-card .card-title { color: #ffffff; font-size: 1.08rem; }
+div, p, span, label, h1, h2, h3, h4, h5, h6,
+[data-testid="stMarkdownContainer"], [data-testid="stWidgetLabel"] {
+    color: var(--mos-ink);
+}
+section[data-testid="stSidebar"] div,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label {
+    color: var(--mos-ink) !important;
+}
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] div {
+    color: var(--mos-ink) !important;
+}
+.stTextInput input, .stSelectbox div[data-baseweb="select"] > div,
+.stNumberInput input {
+    background: #ffffff !important;
+    color: var(--mos-ink) !important;
+    border-color: var(--mos-line) !important;
+}
+div[data-testid="stDataFrame"] {
+    background: #ffffff;
+    border: 1px solid var(--mos-line);
+    border-radius: 8px;
+}
+.metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.mini-table td {
+    border-bottom: 1px solid var(--mos-line);
+    padding: 10px 4px;
+    color: var(--mos-ink);
+}
+.mini-table td:last-child {
+    text-align: right;
+    font-weight: 700;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # HEADER (always shown)
@@ -436,16 +707,262 @@ date_end   = stats["date_range_end"].strftime("%d %b %Y")   if pd.notna(stats["d
 
 st.markdown(f"""
 <div class='hero'>
-    <h1>UPI Spend Analyzer</h1>
+    <h1>ArthaLab Money OS</h1>
     <p>{data_source} &nbsp;·&nbsp; {date_start} → {date_end} &nbsp;·&nbsp; {stats['total_transactions']} transactions</p>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PAGE: DASHBOARD
+if page == "Dashboard":
+    score_col, action_col = st.columns([0.9, 1.4])
+
+    with score_col:
+        st.markdown(f"""
+        <div class='money-card'>
+            <div class='micro-label'>Money wellness score</div>
+            <div class='money-score'>{money_score['score']}</div>
+            <div class='card-title'>{money_score['label']}</div>
+            <div class='card-detail'>{money_score['summary']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with action_col:
+        st.markdown(f"""
+        <div class='action-card'>
+            <div class='micro-label'>Best next action</div>
+            <div class='card-title'>{next_action}</div>
+            <div class='card-detail'>Chosen from recurring charges, food spend, BNPL exposure, savings rate, and high-signal transactions.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        a, b, c = st.columns(3)
+        for col, label, value in [
+            (a, "Spent", _inr(stats["total_spent"])),
+            (b, "Saved", _inr(insights["savings_rate"]["savings"])),
+            (c, "Savings rate", f"{insights['savings_rate']['rate']}%"),
+        ]:
+            with col:
+                st.markdown(f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value'>{value}</div>
+                    <div class='kpi-label'>{label}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.markdown("<div class='section-header'>What matters this month</div>", unsafe_allow_html=True)
+    insight_cols = st.columns(3)
+    top_cat = cat_summary.iloc[0] if not cat_summary.empty else None
+    insight_items = [
+        (
+            "Top spend area",
+            _inr(top_cat["total_spent"]) if top_cat is not None else "No spend",
+            f"{top_cat['category']} is {top_cat['percentage']}% of debit spend." if top_cat is not None else "Upload data to see your spend pattern.",
+        ),
+        (
+            "Silent leaks",
+            _inr(sum(card["amount"] for card in leak_cards[:3])),
+            f"{len(leak_cards)} leak signals found across subscriptions, food, BNPL, and unusual payments.",
+        ),
+        (
+            "Risk checks",
+            str(anomaly_info["high_severity"]),
+            "High-signal transactions after removing date-only late-night noise.",
+        ),
+    ]
+    for col, (title, amount, detail) in zip(insight_cols, insight_items):
+        with col:
+            st.markdown(f"""
+            <div class='insight-card'>
+                <div class='micro-label'>{title}</div>
+                <div class='amount-line'>{amount}</div>
+                <div class='card-detail'>{detail}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<div class='section-header'>Money story</div>", unsafe_allow_html=True)
+    story_left, story_right = st.columns([1.2, 1])
+    monthly = insights["monthly_trend"].copy()
+    recent_month = monthly.iloc[-1] if not monthly.empty else None
+    previous_month = monthly.iloc[-2] if len(monthly) > 1 else None
+    with story_left:
+        if recent_month is not None:
+            change_text = "No previous month to compare yet."
+            if previous_month is not None:
+                diff = recent_month["total_spent"] - previous_month["total_spent"]
+                direction = "higher" if diff > 0 else "lower"
+                change_text = f"{recent_month['month']} was {_inr(abs(diff))} {direction} than {previous_month['month']}."
+            st.markdown(f"""
+            <div class='insight-card'>
+                <div class='micro-label'>This period in plain English</div>
+                <div class='card-title'>You spent {_inr(stats['total_spent'])} across {stats['total_transactions']} transactions.</div>
+                <div class='card-detail'>{change_text} Your average debit transaction is {_inr(stats['avg_transaction'])}, and your daily burn is {_inr(insights['spend_velocity']['avg_daily'])}.</div>
+            </div>
+            """, unsafe_allow_html=True)
+    with story_right:
+        top_merch = top_merchants.head(4).copy()
+        rows = "".join(
+            f"<tr><td>{r['merchant']}</td><td>{_inr(r['total_spent'])}</td></tr>"
+            for _, r in top_merch.iterrows()
+        )
+        st.markdown(f"""
+        <div class='insight-card'>
+            <div class='micro-label'>Top merchants</div>
+            <table class='mini-table'>{rows}</table>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div class='section-header'>Spend split</div>", unsafe_allow_html=True)
+    chart_col, table_col = st.columns([1.25, 1])
+    top_categories = cat_summary.head(6).sort_values("total_spent", ascending=True)
+    fig = go.Figure(go.Bar(
+        y=top_categories["category"],
+        x=top_categories["total_spent"],
+        orientation="h",
+        marker_color="#1769ff",
+        text=[_inr(v) for v in top_categories["total_spent"]],
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>₹%{x:,.0f}<extra></extra>",
+    ))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#151515"),
+        margin=dict(l=10, r=30, t=10, b=10),
+        height=280,
+        xaxis=dict(showgrid=True, gridcolor="#e7e1d8", title=""),
+        yaxis=dict(showgrid=False, title=""),
+        showlegend=False,
+    )
+    with chart_col:
+        st.plotly_chart(fig, use_container_width=True)
+    with table_col:
+        cat_table = cat_summary[["category", "total_spent", "transaction_count", "percentage"]].head(8).copy()
+        cat_table["total_spent"] = cat_table["total_spent"].apply(lambda x: f"₹{x:,.0f}")
+        cat_table["percentage"] = cat_table["percentage"].apply(lambda x: f"{x}%")
+        cat_table.columns = ["Category", "Spent", "Txns", "Share"]
+        st.dataframe(cat_table, use_container_width=True, hide_index=True, height=318)
+
+    st.markdown("<div class='section-header'>Recent transaction trail</div>", unsafe_allow_html=True)
+    recent = df.sort_values("date", ascending=False).head(8)[
+        ["date", "merchant", "category", "amount", "type", "anomaly_severity"]
+    ].copy()
+    recent["date"] = recent["date"].dt.strftime("%d %b")
+    recent["amount"] = recent["amount"].apply(lambda x: f"₹{x:,.0f}")
+    recent.columns = ["Date", "Merchant", "Category", "Amount", "Type", "Signal"]
+    st.dataframe(recent, use_container_width=True, hide_index=True, height=300)
+
+    st.markdown("<div class='section-header'>Learn from your own money</div>", unsafe_allow_html=True)
+    lcols = st.columns(2)
+    for i, card in enumerate(learning_cards[:4]):
+        with lcols[i % 2]:
+            st.markdown(f"""
+            <div class='insight-card'>
+                <div class='micro-label'>{card['title']}</div>
+                <div class='card-detail'>{card['lesson']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+# PAGE: LEARN
+elif page == "Learn":
+    st.markdown("<div class='section-header'>Money lessons from your transactions</div>", unsafe_allow_html=True)
+    for card in learning_cards:
+        st.markdown(f"""
+        <div class='insight-card'>
+            <div class='micro-label'>{card['title']}</div>
+            <div class='card-detail'>{card['lesson']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div class='section-header'>Category lessons</div>", unsafe_allow_html=True)
+    for _, row in cat_summary.head(6).iterrows():
+        monthly_avg = row["total_spent"] / max(stats["months_covered"], 1)
+        st.markdown(f"""
+        <div class='leak-card'>
+            <div class='micro-label'>{row['category']}</div>
+            <div class='amount-line'>{_inr(monthly_avg)}/month</div>
+            <div class='card-detail'>{row['transaction_count']} transactions, {row['percentage']}% of spending. Ask whether this category is a need, a lifestyle choice, or a leak.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# PAGE: LEAKS
+elif page == "Leaks":
+    st.markdown("<div class='section-header'>Silent leaks</div>", unsafe_allow_html=True)
+    if leak_cards:
+        for card in leak_cards:
+            st.markdown(f"""
+            <div class='leak-card'>
+                <div class='micro-label'>{card['title']}</div>
+                <div class='amount-line'>{_inr(card['amount'])}</div>
+                <div class='card-detail'>{card['detail']}<br><b>Action:</b> {card['action']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.success("No strong leak signals found in this statement.")
+
+    st.markdown("<div class='section-header'>Detected recurring payments</div>", unsafe_allow_html=True)
+    subs = insights["subscriptions"].copy()
+    if not subs.empty:
+        subs["monthly_cost"] = subs["monthly_cost"].apply(lambda x: f"₹{x:,.0f}")
+        subs["annual_projection"] = subs["annual_projection"].apply(lambda x: f"₹{x:,.0f}")
+        st.dataframe(
+            subs.rename(columns={
+                "merchant": "Merchant",
+                "monthly_cost": "Monthly",
+                "months_active": "Months active",
+                "annual_projection": "Annual run-rate",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No recurring subscription pattern detected.")
+
+
+# PAGE: TRANSACTIONS
+elif page == "Transactions":
+    st.markdown("<div class='section-header'>Transactions</div>", unsafe_allow_html=True)
+    fc1, fc2, fc3 = st.columns([1, 1, 2])
+    with fc1:
+        sel_cat = st.selectbox("Category", ["All"] + sorted(df["category"].unique().tolist()))
+    with fc2:
+        sel_type = st.selectbox("Type", ["All", "Debit", "Credit"])
+    with fc3:
+        search = st.text_input("Search", placeholder="Merchant or description")
+
+    fdf = df.copy()
+    if sel_cat != "All":
+        fdf = fdf[fdf["category"] == sel_cat]
+    if sel_type != "All":
+        fdf = fdf[fdf["type"] == sel_type]
+    if search:
+        fdf = fdf[fdf["description"].str.contains(search, case=False, na=False)]
+
+    display = fdf[["date", "description", "merchant", "category", "amount", "type", "anomaly_severity"]].copy()
+    display["date"] = display["date"].dt.strftime("%d %b %Y")
+    display["amount"] = display["amount"].apply(lambda x: f"₹{x:,.0f}")
+    display.columns = ["Date", "Description", "Merchant", "Category", "Amount", "Type", "Signal"]
+    st.dataframe(display, use_container_width=True, hide_index=True, height=520)
+
+
+# PAGE: ASK AI
+elif page == "Ask AI":
+    st.markdown("<div class='section-header'>Ask AI</div>", unsafe_allow_html=True)
+    st.info("The AI advisor is still available, but the prototype now leads with deterministic insights first.")
+    st.markdown(f"""
+    <div class='action-card'>
+        <div class='micro-label'>Suggested prompt</div>
+        <div class='card-title'>How can I act on this recommendation: {next_action}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # PAGE: OVERVIEW
 # ══════════════════════════════════════════════════════════════════════════════
-if page == "📊 Overview":
+elif page == "📊 Overview":
 
     # KPI Row
     k1, k2, k3, k4, k5 = st.columns(5)
@@ -1098,12 +1615,12 @@ elif page == "🏦 Multi-Account":
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: AI ADVISOR  🤖
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "🤖 AI Advisor":
+elif page == "AI Coach":
 
-    st.markdown("<div class='section-header'>🤖 AI Financial Advisor</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>AI Money Coach</div>", unsafe_allow_html=True)
 
     if not ANTHROPIC_AVAILABLE:
-        st.error("Anthropic SDK not installed. Run: `pip install anthropic`")
+        st.error("Groq SDK not installed. Run: `pip install groq`")
         st.stop()
 
     client = get_api_client()
@@ -1115,12 +1632,12 @@ elif page == "🤖 AI Advisor":
         **Option A — Streamlit secrets** (recommended):
         Create `.streamlit/secrets.toml` with:
         ```toml
-        ANTHROPIC_API_KEY = "sk-ant-..."
+        GROQ_API_KEY = "gsk_..."
         ```
 
         **Option B — Environment variable:**
         ```bash
-        export ANTHROPIC_API_KEY="sk-ant-..."
+        export GROQ_API_KEY="gsk_..."
         streamlit run app.py
         ```
         """)

@@ -92,6 +92,31 @@ def _normalize_columns(df: pd.DataFrame) -> dict:
     return mapping
 
 
+def _money_to_number(series: pd.Series) -> pd.Series:
+    """Convert money-like strings to numbers while preserving signs."""
+    cleaned = (
+        series.astype(str)
+        .str.replace(",", "", regex=False)
+        .str.replace("₹", "", regex=False)
+        .str.replace("â‚¹", "", regex=False)
+        .str.strip()
+    )
+    return pd.to_numeric(cleaned, errors="coerce")
+
+
+def _find_col(df: pd.DataFrame, names: list) -> str:
+    lower_cols = {c.lower().strip(): c for c in df.columns}
+    for name in names:
+        if name in lower_cols:
+            return lower_cols[name]
+    return ""
+
+
+def _has_explicit_time(val) -> bool:
+    text = str(val).strip()
+    return bool(re.search(r"\b\d{1,2}:\d{2}(?::\d{2})?\b", text))
+
+
 def _detect_debit_credit(df: pd.DataFrame, amount_col: str, type_col: str = None) -> pd.Series:
     """
     Determine transaction type (Debit / Credit) from the data.
@@ -99,12 +124,31 @@ def _detect_debit_credit(df: pd.DataFrame, amount_col: str, type_col: str = None
     """
     if type_col and type_col in df.columns:
         raw = df[type_col].astype(str).str.lower().str.strip()
-        result = raw.map(lambda x: "Credit" if any(k in x for k in ["cr", "credit", "received"]) else "Debit")
+        result = raw.map(
+            lambda x: "Credit"
+            if any(k in x for k in ["cr", "credit", "received", "income"])
+            else "Debit"
+        )
         return result
 
+    debit_col = _find_col(df, ["debit amount", "debit", "withdrawal", "paid"])
+    credit_col = _find_col(df, ["credit amount", "credit", "deposit", "received"])
+    if debit_col or credit_col:
+        debit_vals = _money_to_number(df[debit_col]) if debit_col else pd.Series(0, index=df.index)
+        credit_vals = _money_to_number(df[credit_col]) if credit_col else pd.Series(0, index=df.index)
+        return pd.Series(
+            np.where(credit_vals.fillna(0).abs() > debit_vals.fillna(0).abs(), "Credit", "Debit"),
+            index=df.index,
+        )
+
     # Fall back to sign of amount
-    nums = pd.to_numeric(df[amount_col].astype(str).str.replace(",", ""), errors="coerce")
-    return nums.apply(lambda x: "Credit" if (not pd.isna(x) and x > 0) else "Debit")
+    nums = _money_to_number(df[amount_col])
+    has_negative = (nums.dropna() < 0).any()
+    if has_negative:
+        return nums.apply(lambda x: "Credit" if (not pd.isna(x) and x > 0) else "Debit")
+
+    # A single positive amount column without a type is more often an expense export.
+    return pd.Series("Debit", index=df.index)
 
 
 def parse_csv(file_obj) -> pd.DataFrame:
@@ -133,6 +177,7 @@ def parse_csv(file_obj) -> pd.DataFrame:
     # Date
     date_col = col_map.get("date", raw_df.columns[0])
     df["date"] = raw_df[date_col].apply(_try_parse_date)
+    df["has_time"] = raw_df[date_col].apply(_has_explicit_time)
 
     # Description
     desc_col = col_map.get("description", None)
@@ -148,6 +193,13 @@ def parse_csv(file_obj) -> pd.DataFrame:
         df["amount"] = pd.to_numeric(amt_str, errors="coerce").abs()
     else:
         df["amount"] = np.nan
+
+    debit_col = _find_col(raw_df, ["debit amount", "debit", "withdrawal", "paid"])
+    credit_col = _find_col(raw_df, ["credit amount", "credit", "deposit", "received"])
+    if amt_col and (debit_col or credit_col):
+        debit_vals = _money_to_number(raw_df[debit_col]) if debit_col else pd.Series(0, index=raw_df.index)
+        credit_vals = _money_to_number(raw_df[credit_col]) if credit_col else pd.Series(0, index=raw_df.index)
+        df["amount"] = debit_vals.fillna(0).abs() + credit_vals.fillna(0).abs()
 
     # Type
     type_col = col_map.get("type", None)
