@@ -1,0 +1,90 @@
+Date,Description,Amount,Type,UPI_ID,Balance
+2024-01-02,Zomato Order #12345,-450.00,Debit,zomato@icici,24550.00
+2024-01-03,Uber Ride Mumbai,-180.00,Debit,uber@axl,24370.00
+2024-01-03,Swiggy Instamart,-320.00,Debit,swiggy@yesbank,24050.00
+2024-01-05,Amazon Shopping,-1299.00,Debit,amazon@apl,22751.00
+2024-01-06,Netflix Subscription,-649.00,Debit,netflix@axisbank,22102.00
+2024-01-07,Salary Credit,85000.00,Credit,employer@hdfcbank,107102.00
+2024-01-08,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,106303.00
+2024-01-09,Zomato Order #12567,-560.00,Debit,zomato@icici,105743.00
+2024-01-10,Petrol Station,-2200.00,Debit,hpcl@okhdfc,103543.00
+2024-01-11,BigBasket Grocery,-1850.00,Debit,bigbasket@axisbank,101693.00
+2024-01-12,Apollo Pharmacy,-430.00,Debit,apollopharmacy@hdfc,101263.00
+2024-01-13,Ola Cab Chennai,-220.00,Debit,ola@hdfcbank,101043.00
+2024-01-14,DMart Grocery,-2400.00,Debit,dmart@dmart,98643.00
+2024-01-15,Swiggy Order,-380.00,Debit,swiggy@yesbank,98263.00
+2024-01-16,Gym Membership Cult,-1499.00,Debit,cultsport@axis,96764.00
+2024-01-17,Zerodha Brokerage,-500.00,Debit,zerodha@hdfcbank,96264.00
+2024-01-18,Electricity Bill BESCOM,-1200.00,Debit,bescom@okhdfc,95064.00
+2024-01-19,Amazon Order Books,-899.00,Debit,amazon@apl,94165.00
+2024-01-20,Uber Eats,-340.00,Debit,uber@axl,93825.00
+2024-01-21,PVR Cinema Tickets,-680.00,Debit,pvr@icicibank,93145.00
+2024-01-22,Jio Recharge,-299.00,Debit,jio@jiomoney,92846.00
+2024-01-23,Transfer to Rahul,-5000.00,Debit,rahulmehra@okicici,87846.00
+2024-01-24,Zomato Order #13001,-720.00,Debit,zomato@icici,87126.00
+2024-01-25,Flipkart Sale Purchase,-3499.00,Debit,flipkart@yesbank,83627.00
+2024-01-26,Rapido Bike Taxi,-65.00,Debit,rapido@axisbank,83562.00
+2024-01-27,Udemy Course,-1299.00,Debit,udemy@paytm,82263.00
+2024-01-28,Medical Test Lab,-850.00,Debit,thyrocare@hdfcbank,81413.00
+2024-01-29,Swiggy Order,-450.00,Debit,swiggy@yesbank,80963.00
+2024-01-30,Gas Cylinder Booking,-900.00,Debit,hpgas@okhdfc,80063.00
+2024-01-31,Spotify Premium,-119.00,Debit,spotify@axis,79944.00
+2024-02-01,Zomato Order #13200,-510.00,Debit,zomato@icici,79434.00
+2024-02-02,Metro Card Recharge,-500.00,Debit,nmrc@hdfcbank,78934.00
+2024-02-03,Myntra Fashion,-2199.00,Debit,myntra@kotak,76735.00
+2024-02-04,Swiggy Order,-280.00,Debit,swiggy@yesbank,76455.00
+2024-02-05,Amazon Pantry,-1650.00,Debit,amazon@apl,74805.00
+2024-02-06,Salary Credit,85000.00,Credit,employer@hdfcbank,159805.00
+2024-02-07,HDFC Credit Card Bill,-15000.00,Debit,hdfcbank@hdfcbank,144805.00
+2024-02-08,Zomato Order #13450,-890.00,Debit,zomato@icici,143915.00
+2024-02-09,Uber Ride,-250.00,Debit,uber@axl,143665.00
+2024-02-10,Netflix + Hotstar,-1149.00,Debit,hotstar@axisbank,142516.00
+2024-02-11,OYO Room Booking,-2800.00,Debit,oyorooms@icici,139716.00
+2024-02-12,Zomato Binge,-1200.00,Debit,zomato@icici,138516.00
+2024-02-13,IRCTC Train Ticket,-1450.00,Debit,irctc@irctcpay,137066.00
+2024-02-14,Flowers & Gift Shop,-850.00,Debit,ferns@okhdfc,136216.00
+2024-02-15,BigBasket,-2100.00,Debit,bigbasket@axisbank,134116.00
+2024-02-16,Ola Outstation,-3200.00,Debit,ola@hdfcbank,130916.00
+2024-02-17,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,120916.00
+2024-02-18,Electricity Bill,-1200.00,Debit,bescom@okhdfc,119716.00
+2024-02-19,Zomato Order,-430.00,Debit,zomato@icici,119286.00
+2024-02-20,Gym Cult,-1499.00,Debit,cultsport@axis,117787.00
+2024-02-21,Amazon Electronics,-8999.00,Debit,amazon@apl,108788.00
+2024-02-22,Uber Ride,-190.00,Debit,uber@axl,108598.00
+2024-02-23,Swiggy Dineout,-1800.00,Debit,swiggy@yesbank,106798.00
+2024-02-24,Airtel Bill,-799.00,Debit,airtel@airtel,105999.00
+2024-02-25,BookMyShow Concert,-2500.00,Debit,bms@icici,103499.00
+2024-02-26,Petrol,-2000.00,Debit,hpcl@okhdfc,101499.00
+2024-02-27,Zomato Order #14100,-670.00,Debit,zomato@icici,100829.00
+2024-02-28,Transfer to Mom,-10000.00,Debit,mom@sbi,90829.00
+2024-03-01,Nykaa Beauty,-1350.00,Debit,nykaa@axis,89479.00
+2024-03-02,Swiggy Order,-520.00,Debit,swiggy@yesbank,88959.00
+2024-03-03,Metro Recharge,-1000.00,Debit,nmrc@hdfcbank,87959.00
+2024-03-04,DMart Shopping,-3100.00,Debit,dmart@dmart,84859.00
+2024-03-05,Amazon Order,-2499.00,Debit,amazon@apl,82360.00
+2024-03-06,Salary Credit,85000.00,Credit,employer@hdfcbank,167360.00
+2024-03-07,Zomato Order,-480.00,Debit,zomato@icici,166880.00
+2024-03-08,Uber Premium,-350.00,Debit,uber@axl,166530.00
+2024-03-09,Jio Recharge,-399.00,Debit,jio@jiomoney,166131.00
+2024-03-10,Medical Checkup,-1500.00,Debit,apollohospital@hdfc,164631.00
+2024-03-11,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,154631.00
+2024-03-12,Swiggy Order,-610.00,Debit,swiggy@yesbank,154021.00
+2024-03-13,Amazon Clothes,-1899.00,Debit,amazon@apl,152122.00
+2024-03-14,IRCTC Tatkal Ticket,-2200.00,Debit,irctc@irctcpay,149922.00
+2024-03-15,BigBasket,-1950.00,Debit,bigbasket@axisbank,147972.00
+2024-03-16,Netflix,-649.00,Debit,netflix@axisbank,147323.00
+2024-03-17,Cult Gym,-1499.00,Debit,cultsport@axis,145824.00
+2024-03-18,Electricity Bill,-1200.00,Debit,bescom@okhdfc,144624.00
+2024-03-19,Zomato Party Order,-3400.00,Debit,zomato@icici,141224.00
+2024-03-20,Uber Ride,-160.00,Debit,uber@axl,141064.00
+2024-03-21,Flipkart Sale,-5499.00,Debit,flipkart@yesbank,135565.00
+2024-03-22,Petrol Pump,-2200.00,Debit,hpcl@okhdfc,133365.00
+2024-03-23,Swiggy Order,-390.00,Debit,swiggy@yesbank,132975.00
+2024-03-24,Transfer to Friend,-3000.00,Debit,friend@okicici,129975.00
+2024-03-25,Hotstar Annual,-1499.00,Debit,hotstar@axisbank,128476.00
+2024-03-26,Ola Cab,-280.00,Debit,ola@hdfcbank,128196.00
+2024-03-27,Pharmacy Medplus,-560.00,Debit,medplus@icici,127636.00
+2024-03-28,Zomato Midnight,-650.00,Debit,zomato@icici,126986.00
+2024-03-29,Amazon Fresh,-1200.00,Debit,amazon@apl,125786.00
+2024-03-30,Groww Investment,-5000.00,Debit,groww@axis,120786.00
+2024-03-31,Spotify,-119.00,Debit,spotify@axis,120667.00

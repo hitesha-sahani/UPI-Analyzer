@@ -1,0 +1,1337 @@
+
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import json
+import plotly.graph_objects as go
+from pathlib import Path
+
+# ── Page config ────────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="UPI Spend Analyzer",
+    page_icon="💸",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ── Core imports ────────────────────────────────────────────────────────────────
+from modules.parser           import parse_csv, get_summary_stats
+from modules.categorizer      import categorize_transactions, get_category_summary, get_top_merchants
+from modules.anomaly_detector import detect_anomalies, get_anomaly_summary
+from modules.insights         import generate_full_insights, generate_nudges
+from modules import charts
+
+# ── New feature imports ─────────────────────────────────────────────────────────
+from modules.budget_tracker   import (compute_budget_status, get_budget_alerts,
+                                      get_overall_budget_health, DEFAULT_BUDGETS)
+from modules.forecaster       import forecast_all_categories, get_total_forecast
+from modules.deduplicator     import merge_accounts, deduplicate, get_dedup_report, get_clean_df
+from modules.ai_advisor       import (build_financial_context, get_api_client,
+                                      chat_stream, chat_once, generate_monthly_summary,
+                                      STARTER_QUESTIONS, ANTHROPIC_AVAILABLE)
+from modules.benchmarks       import (compute_benchmarks, get_savings_benchmark,
+                                      get_standout_categories)
+
+
+# ── Custom CSS ──────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+    --bg-primary:   #0f0f1a;
+    --bg-card:      #1a1a2e;
+    --bg-card2:     #16213e;
+    --accent-purple:#6C63FF;
+    --accent-teal:  #4ECDC4;
+    --accent-red:   #FF6B6B;
+    --accent-yellow:#FFD93D;
+    --text-primary: #E0E0F0;
+    --text-muted:   #8A8AB0;
+}
+
+.stApp { 
+    background: var(--bg-primary); 
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0f0f1a, #141428);
+    border-right: 1px solid rgba(108,99,255,0.2);
+}
+
+/* Sidebar radio enhancement */
+div[data-testid="stSidebar"] label[data-baseweb="radio"] > div {
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+div[data-testid="stSidebar"] label[data-baseweb="radio"]:hover > div {
+    background: rgba(108,99,255,0.15);
+}
+div[data-testid="stSidebar"] input:checked + div {
+    background: rgba(108,99,255,0.25);
+    border-left: 3px solid #6C63FF;
+}
+
+/* Cards */
+.kpi-card {
+    background: linear-gradient(145deg, #1a1a2e, #141425);
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transition: 0.2s ease;
+}
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(108,99,255,0.25);
+}
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-teal));
+}
+
+.kpi-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.kpi-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+}
+
+.kpi-delta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    margin-top: 6px;
+}
+
+/* Section headers */
+.section-header {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 8px 0 12px;
+    border-bottom: 1px solid rgba(108,99,255,0.15);
+    margin-bottom: 16px;
+    position: relative;
+}
+.section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background: #6C63FF;
+}
+
+/* Plotly charts container */
+div[data-testid="stPlotlyChart"] {
+    background: #1a1a2e;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(108,99,255,0.15);
+}
+
+/* Nudge cards */
+.nudge-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(108,99,255,0.25);
+    border-left: 3px solid var(--accent-purple);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+}
+.badge-high   { background: rgba(255,107,107,0.2); color: #FF6B6B; border: 1px solid #FF6B6B; }
+.badge-medium { background: rgba(255,159,67,0.2); color: #FF9F43;  border: 1px solid #FF9F43; }
+.badge-low    { background: rgba(255,217,61,0.2); color: #FFD93D;  border: 1px solid #FFD93D; }
+.badge-clean  { background: rgba(78,205,196,0.2); color: #4ECDC4;  border: 1px solid #4ECDC4; }
+
+/* Rows */
+.sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Hero */
+.hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 60%, #1a0f2e 100%);
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: 16px;
+    padding: 32px 40px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+.hero::after {
+    content: '₹';
+    position: absolute;
+    right: 40px; top: -10px;
+    font-size: 120px;
+    font-family: 'Space Mono', monospace;
+    color: rgba(108,99,255,0.06);
+    font-weight: 700;
+}
+
+.hero h1 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #E0E0F0;
+    margin: 0 0 6px;
+}
+
+.hero p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #8A8AB0;
+    margin: 0;
+}
+
+/* Layout spacing */
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 1rem;
+}
+
+/* Tables */
+div[data-testid="stDataFrame"] {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(108,99,255,0.7); }
+
+body {
+    letter-spacing: 0.2px;
+}
+</style>
+""", unsafe_allow_html=True)
+# ──────────────────────────────────────────────────────────────────────────────
+# SIDEBAR
+# ──────────────────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div style='text-align:center; padding: 20px 0 10px;'>
+        <div style='font-size:2.2rem;'>💸</div>
+        <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.1rem; color:#E0E0F0;'>UPI Analyzer</div>
+        <div style='font-size:0.72rem; color:#6C63FF; letter-spacing:0.1em; text-transform:uppercase;'>Spend Intelligence</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    page = st.radio(
+        "Navigate",
+        [
+            "📊 Overview", "🏷️ Categories", "🔍 Anomalies", "🧠 Insights",
+            "🎯 Budget Tracker", "🔮 Forecast", "🏦 Multi-Account",
+            "🤖 AI Advisor", "📈 Benchmarks", "📋 Transactions",
+        ],
+        label_visibility="collapsed",
+    )
+
+    st.divider()
+
+    try:
+        if 'df' in locals() and df is not None:
+            stats_sidebar = get_summary_stats(df)
+            st.markdown("### 📈 Quick Stats")
+            st.metric("₹ Spent", f"₹{stats_sidebar['total_spent']:,.0f}")
+            st.metric("Txns", f"{stats_sidebar['total_transactions']}")
+    except:
+        pass
+
+    with st.expander("📂 Upload Data", expanded=True):
+        st.markdown("<div style='font-size:0.78rem; color:#8A8AB0; font-family:DM Sans; text-transform:uppercase; letter-spacing:0.08em;'>Upload Data</div>", unsafe_allow_html=True)
+
+        uploaded_file = st.file_uploader(
+            "Upload CSV",
+            type=["csv"],
+            help="Supports GPay, PhonePe, Paytm, BHIM, or any bank CSV export",
+            label_visibility="collapsed",
+        )
+
+        extra_files = st.file_uploader(
+            "Add more accounts (optional)",
+            type=["csv"],
+            accept_multiple_files=True,
+            help="Upload CSVs from other UPI apps to merge and deduplicate",
+            label_visibility="collapsed",
+        )
+
+        use_sample = st.checkbox("Use sample data", value=True)
+
+        st.markdown("""
+        <div style='font-size:0.75rem; color:#8A8AB0; font-family:DM Sans; line-height:1.6;'>
+        <b style='color:#6C63FF'>Supported formats:</b><br>
+        Google Pay · PhonePe<br>
+        Paytm · BHIM · Bank CSV<br><br>
+        <b style='color:#6C63FF'>Required columns:</b><br>
+        Date · Description · Amount
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DATA LOADING  (cached)
+# ──────────────────────────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
+                     extra_bytes_list: tuple = ()):
+    import io
+    dfs, names = [], []
+
+    if file_bytes:
+        raw = parse_csv(io.BytesIO(file_bytes))
+        dfs.append(raw); names.append("Primary Account")
+    elif use_sample:
+        sample_path = Path(__file__).parent / "data" / "sample_transactions.csv"
+        raw = parse_csv(str(sample_path))
+        dfs.append(raw); names.append("Sample Data")
+    else:
+        return None
+
+    # Additional accounts
+    for i, eb in enumerate(extra_bytes_list):
+        try:
+            extra_raw = parse_csv(io.BytesIO(eb))
+            dfs.append(extra_raw)
+            names.append(f"Account {i+2}")
+        except Exception:
+            pass
+
+    # Merge + dedup
+    if len(dfs) > 1:
+        merged = merge_accounts(dfs, names)
+    else:
+        from modules.deduplicator import tag_source
+        merged = tag_source(dfs[0], names[0])
+
+    merged = deduplicate(merged)
+    clean  = get_clean_df(merged)
+
+    df = categorize_transactions(clean)
+    df = detect_anomalies(df)
+    return df, merged   # return both: clean processed + raw merged with dup flags
+
+
+# Load data
+extra_bytes = tuple(f.read() for f in extra_files) if extra_files else ()
+
+if uploaded_file:
+    result = load_and_process(file_bytes=uploaded_file.read(),
+                              extra_bytes_list=extra_bytes)
+    data_source = f"📁 {uploaded_file.name}"
+    if extra_files:
+        data_source += f" + {len(extra_files)} more"
+elif use_sample:
+    result = load_and_process(use_sample=True)
+    data_source = "🗂️ Sample Data (3 months)"
+else:
+    result = None
+    data_source = "No data"
+
+if result is None:
+    df = None
+    merged_raw = None
+else:
+    df, merged_raw = result
+
+if df is None:
+    # Landing screen
+    st.markdown("""
+    <div class='hero'>
+        <h1>UPI Spend Analyzer</h1>
+        <p>Upload your UPI transaction CSV to unlock spending insights, detect anomalies, and understand your financial habits.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    for col, icon, title, desc in [
+        (col1, "🏷️", "Auto-Categorize", "Automatically sorts transactions into 12 spending categories"),
+        (col2, "🔍", "Flag Anomalies", "Detects unusual spends using Z-score & IQR analysis"),
+        (col3, "🧠", "Behavioral Insights", "Finds patterns, subscriptions, and gives actionable nudges"),
+    ]:
+        with col:
+            st.markdown(f"""
+            <div class='kpi-card' style='text-align:center;'>
+                <div style='font-size:2rem; margin-bottom:10px;'>{icon}</div>
+                <div style='font-family:DM Sans; font-weight:600; color:#E0E0F0; margin-bottom:6px;'>{title}</div>
+                <div style='font-size:0.82rem; color:#8A8AB0; font-family:DM Sans;'>{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.info("👈 Upload a CSV or check **Use sample data** in the sidebar to explore a demo.", icon="💡")
+    st.stop()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# COMPUTED DATA
+# ──────────────────────────────────────────────────────────────────────────────
+stats         = get_summary_stats(df)
+cat_summary   = get_category_summary(df)
+top_merchants = get_top_merchants(df, n=10)
+anomaly_info  = get_anomaly_summary(df)
+insights      = generate_full_insights(df)
+nudges        = generate_nudges(df, insights["savings_rate"], insights["subscriptions"])
+
+# ── Session state init ──────────────────────────────────────────────────────────
+if "budgets" not in st.session_state:
+    st.session_state.budgets = DEFAULT_BUDGETS.copy()
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "ai_context" not in st.session_state:
+    st.session_state.ai_context = build_financial_context(
+        df, cat_summary, insights, anomaly_info
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# HEADER (always shown)
+# ──────────────────────────────────────────────────────────────────────────────
+date_start = stats["date_range_start"].strftime("%d %b %Y") if pd.notna(stats["date_range_start"]) else "—"
+date_end   = stats["date_range_end"].strftime("%d %b %Y")   if pd.notna(stats["date_range_end"])   else "—"
+
+st.markdown(f"""
+<div class='hero'>
+    <h1>UPI Spend Analyzer</h1>
+    <p>{data_source} &nbsp;·&nbsp; {date_start} → {date_end} &nbsp;·&nbsp; {stats['total_transactions']} transactions</p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: OVERVIEW
+# ══════════════════════════════════════════════════════════════════════════════
+if page == "📊 Overview":
+
+    # KPI Row
+    k1, k2, k3, k4, k5 = st.columns(5)
+    kpis = [
+        (k1, "Total Spent",       f"₹{stats['total_spent']:,.0f}",   None),
+        (k2, "Total Income",      f"₹{stats['total_received']:,.0f}", None),
+        (k3, "Avg Transaction",   f"₹{stats['avg_transaction']:,.0f}", None),
+        (k4, "Savings Rate",      f"{insights['savings_rate']['rate']}%", None),
+        (k5, "Anomalies Flagged", f"{anomaly_info['total_flagged']}", None),
+    ]
+    for col, label, value, delta in kpis:
+        with col:
+            st.markdown(f"""
+            <div class='kpi-card'>
+                <div class='kpi-value'>{value}</div>
+                <div class='kpi-label'>{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Charts row 1
+    col_left, col_right = st.columns([1, 1.6])
+    with col_left:
+        st.markdown("<div class='section-header'>Spend by Category</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.category_donut(cat_summary), use_container_width=True)
+
+    with col_right:
+        st.markdown("<div class='section-header'>Monthly Spend Trend</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.monthly_trend_chart(insights["monthly_trend"]), use_container_width=True)
+
+    # Charts row 2
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("<div class='section-header'>Spending by Day of Week</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.dayofweek_bar(insights["dayofweek_pattern"]), use_container_width=True)
+
+    with col_b:
+        st.markdown("<div class='section-header'>Savings Rate Gauge</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.savings_gauge(insights["savings_rate"]["rate"]), use_container_width=True)
+
+        v = insights["savings_rate"]
+        s1, s2, s3 = st.columns(3)
+        for scol, label, val in [
+            (s1, "Income",  f"₹{v['income']:,.0f}"),
+            (s2, "Spent",   f"₹{v['spend']:,.0f}"),
+            (s3, "Savings", f"₹{v['savings']:,.0f}"),
+        ]:
+            scol.metric(label, val)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: CATEGORIES
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🏷️ Categories":
+
+    # Category breakdown table
+    st.markdown("<div class='section-header'>Category Breakdown</div>", unsafe_allow_html=True)
+
+    display_df = cat_summary[["icon", "category", "total_spent", "transaction_count", "avg_transaction", "percentage"]].copy()
+    display_df.columns = ["", "Category", "Total Spent (₹)", "# Transactions", "Avg (₹)", "% of Spend"]
+    display_df["Total Spent (₹)"] = display_df["Total Spent (₹)"].apply(lambda x: f"₹{x:,.0f}")
+    display_df["Avg (₹)"]         = display_df["Avg (₹)"].apply(lambda x: f"₹{x:,.0f}")
+    display_df["% of Spend"]      = display_df["% of Spend"].apply(lambda x: f"{x}%")
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Stacked monthly by category + top merchants
+    col1, col2 = st.columns([1.5, 1])
+    with col1:
+        st.markdown("<div class='section-header'>Monthly Category Stack</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.category_monthly_stacked(df, cat_summary), use_container_width=True)
+
+    with col2:
+        st.markdown("<div class='section-header'>Top 10 Merchants</div>", unsafe_allow_html=True)
+        st.plotly_chart(charts.top_merchants_chart(top_merchants), use_container_width=True)
+
+    # Spend calendar heatmap
+    st.markdown("<div class='section-header'>Spend Calendar Heatmap</div>", unsafe_allow_html=True)
+    st.plotly_chart(charts.spend_calendar_heatmap(df), use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: ANOMALIES
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🔍 Anomalies":
+
+    # Anomaly KPIs
+    a1, a2, a3, a4 = st.columns(4)
+    for col, label, val, color in [
+        (a1, "Total Flagged",    anomaly_info["total_flagged"],    "#FFD93D"),
+        (a2, "High Severity",   anomaly_info["high_severity"],    "#FF6B6B"),
+        (a3, "Medium Severity", anomaly_info["medium_severity"],  "#FF9F43"),
+        (a4, "Flagged Amount",  f"₹{anomaly_info['flagged_amount']:,.0f}", "#A29BFE"),
+    ]:
+        with col:
+            st.markdown(f"""
+            <div class='kpi-card'>
+                <div class='kpi-value' style='color:{color};'>{val}</div>
+                <div class='kpi-label'>{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Scatter
+    st.markdown("<div class='section-header'>Transaction Anomaly Map</div>", unsafe_allow_html=True)
+    st.markdown("<small style='color:#8A8AB0'>Hover over dots to see details. Larger/brighter = more flags.</small>", unsafe_allow_html=True)
+    st.plotly_chart(charts.anomaly_scatter(df), use_container_width=True)
+
+    # Top flagged table
+    st.markdown("<div class='section-header'>Top Flagged Transactions</div>", unsafe_allow_html=True)
+
+    top_flagged = anomaly_info["top_flagged"].copy()
+    if not top_flagged.empty:
+        top_flagged["flags"] = top_flagged["anomaly_flags"].apply(lambda x: " · ".join(x))
+        top_flagged["date"]  = top_flagged["date"].dt.strftime("%d %b %Y")
+        top_flagged["amount"] = top_flagged["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+        def sev_badge(sev):
+            cls = f"badge-{sev.lower()}"
+            return f'<span class="badge {cls}">{sev}</span>'
+
+        top_flagged["severity"] = top_flagged["anomaly_severity"].apply(sev_badge)
+
+        st.dataframe(
+            top_flagged[["date", "description", "amount", "anomaly_severity", "flags"]].rename(
+                columns={"anomaly_severity": "Severity", "anomaly_flags": "Flags"}
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # Flag type breakdown
+    st.markdown("<div class='section-header'>Flag Type Distribution</div>", unsafe_allow_html=True)
+    flag_counts = {}
+    for flags_list in df["anomaly_flags"]:
+        for flag in flags_list:
+            flag_counts[flag] = flag_counts.get(flag, 0) + 1
+
+    if flag_counts:
+        flag_df = pd.DataFrame(list(flag_counts.items()), columns=["Flag", "Count"]).sort_values("Count", ascending=True)
+        fig = go.Figure(go.Bar(
+            y=flag_df["Flag"], x=flag_df["Count"],
+            orientation="h",
+            marker_color="#6C63FF",
+            text=flag_df["Count"],
+            textposition="outside",
+        ))
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#E0E0E0"), height=280,
+            margin=dict(l=20, r=20, t=20, b=20),
+            xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)"),
+            yaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: INSIGHTS
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🧠 Insights":
+
+    st.markdown("<div class='section-header'>💡 Your Money Nudges</div>", unsafe_allow_html=True)
+
+    if nudges:
+        for nudge in nudges:
+            st.markdown(f"<div class='nudge-card'>{nudge}</div>", unsafe_allow_html=True)
+    else:
+        st.info("Not enough data to generate personalized nudges. Add more months of transactions.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Behavioral stats row
+    vel = insights["spend_velocity"]
+    guilt = insights["guilt_merchant"]
+    wknd = insights["weekend_vs_weekday"]
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("<div class='section-header'>💰 Spend Velocity</div>", unsafe_allow_html=True)
+        for label, val in [
+            ("Per Day",   f"₹{vel['avg_daily']:,.0f}"),
+            ("Per Week",  f"₹{vel['avg_weekly']:,.0f}"),
+            ("Per Month", f"₹{vel['avg_monthly']:,.0f}"),
+        ]:
+            st.markdown(f"""
+            <div style='display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-family:DM Sans;'>
+                <span style='color:#8A8AB0; font-size:0.88rem;'>{label}</span>
+                <span style='color:#E0E0F0; font-weight:600; font-family:Space Mono;'>{val}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("<div class='section-header'>📅 Weekend vs Weekday</div>", unsafe_allow_html=True)
+        for label, val, color in [
+            ("Weekdays", f"₹{wknd['weekday_total']:,.0f} ({wknd['weekday_pct']}%)", "#6C63FF"),
+            ("Weekends", f"₹{wknd['weekend_total']:,.0f} ({wknd['weekend_pct']}%)", "#4ECDC4"),
+        ]:
+            st.markdown(f"""
+            <div style='padding:14px; background:#1a1a2e; border-radius:8px; margin-bottom:8px; border-left: 3px solid {color};'>
+                <div style='font-size:0.78rem; color:#8A8AB0; font-family:DM Sans; text-transform:uppercase;'>{label}</div>
+                <div style='font-size:1.1rem; font-weight:700; color:#E0E0F0; font-family:Space Mono;'>{val}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("<div class='section-header'>😅 Guilty Pleasure</div>", unsafe_allow_html=True)
+        if guilt:
+            st.markdown(f"""
+            <div style='padding:20px; background: linear-gradient(135deg, #1a0a2e, #1a1a2e); border-radius:10px; text-align:center; border: 1px solid rgba(255,107,107,0.3);'>
+                <div style='font-size:2rem;'>😬</div>
+                <div style='font-family:DM Sans; font-weight:700; font-size:1.15rem; color:#E0E0F0; margin:8px 0 4px;'>{guilt['merchant']}</div>
+                <div style='font-size:0.82rem; color:#8A8AB0; font-family:DM Sans;'>{guilt['visits']} orders · ₹{guilt['total']:,.0f} total</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No guilty pleasure detected (yet 😉)")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Subscriptions
+    st.markdown("<div class='section-header'>📺 Detected Subscriptions</div>", unsafe_allow_html=True)
+    subs = insights["subscriptions"]
+
+    if not subs.empty:
+        total_sub_monthly = subs["monthly_cost"].sum()
+        st.markdown(f"""
+        <div style='background:rgba(108,99,255,0.1); border:1px solid rgba(108,99,255,0.3); border-radius:10px; padding:16px 20px; margin-bottom:16px; font-family:DM Sans;'>
+            <span style='color:#8A8AB0; font-size:0.85rem;'>Combined monthly subscription cost: </span>
+            <span style='color:#6C63FF; font-weight:700; font-size:1.1rem; font-family:Space Mono;'>₹{total_sub_monthly:,.0f}/mo</span>
+            <span style='color:#8A8AB0; font-size:0.85rem;'> → ₹{total_sub_monthly*12:,.0f}/year</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        for _, row in subs.iterrows():
+            st.markdown(f"""
+            <div class='sub-row'>
+                <div>
+                    <div style='font-family:DM Sans; font-weight:600; color:#E0E0F0;'>{row['merchant']}</div>
+                    <div style='font-size:0.75rem; color:#8A8AB0;'>Active {row['months_active']} months</div>
+                </div>
+                <div style='text-align:right;'>
+                    <div style='font-family:Space Mono; font-weight:700; color:#4ECDC4;'>₹{row['monthly_cost']:,.0f}/mo</div>
+                    <div style='font-size:0.75rem; color:#8A8AB0;'>₹{row['annual_projection']:,.0f}/yr</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No recurring subscriptions detected.")
+
+    # Biggest month-over-month jump
+    jump = insights["biggest_jump"]
+    if jump:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>📈 Biggest MoM Spend Jump</div>", unsafe_allow_html=True)
+        direction = "📈" if jump["change"] > 0 else "📉"
+        st.markdown(f"""
+        <div class='nudge-card' style='border-left-color: #FF6B6B;'>
+            {direction} In <b>{jump['month']}</b>, your spending jumped by <b>₹{abs(jump['change']):,.0f}</b>
+            ({'+' if jump['pct_change'] > 0 else ''}{jump['pct_change']:.1f}%) compared to <b>{jump['prev_month']}</b>.
+            That went from ₹{jump['prev_amount']:,.0f} to ₹{jump['amount']:,.0f}.
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: TRANSACTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📋 Transactions":
+
+    st.markdown("<div class='section-header'>Transaction Log</div>", unsafe_allow_html=True)
+
+    # Filters
+    fc1, fc2, fc3, fc4 = st.columns([1, 1, 1, 1])
+    with fc1:
+        all_cats = ["All"] + sorted(df["category"].unique().tolist())
+        sel_cat = st.selectbox("Category", all_cats)
+    with fc2:
+        sel_type = st.selectbox("Type", ["All", "Debit", "Credit"])
+    with fc3:
+        sel_severity = st.selectbox("Anomaly Severity", ["All", "Clean", "Low", "Medium", "High"])
+    with fc4:
+        search = st.text_input("Search description", placeholder="e.g. Zomato, Uber…")
+
+    # Apply filters
+    fdf = df.copy()
+    if sel_cat     != "All":      fdf = fdf[fdf["category"] == sel_cat]
+    if sel_type    != "All":      fdf = fdf[fdf["type"] == sel_type]
+    if sel_severity != "All":     fdf = fdf[fdf["anomaly_severity"] == sel_severity]
+    if search:                    fdf = fdf[fdf["description"].str.contains(search, case=False, na=False)]
+
+    st.markdown(f"<small style='color:#8A8AB0;'>Showing {len(fdf):,} of {len(df):,} transactions</small>", unsafe_allow_html=True)
+
+    # Display
+    display = fdf[["date", "description", "merchant", "category", "amount", "type", "anomaly_severity", "anomaly_flags"]].copy()
+    display["date"]   = display["date"].dt.strftime("%d %b %Y")
+    display["amount"] = display["amount"].apply(lambda x: f"₹{x:,.0f}")
+    display["anomaly_flags"] = display["anomaly_flags"].apply(lambda x: " · ".join(x) if x else "—")
+    display.columns  = ["Date", "Description", "Merchant", "Category", "Amount", "Type", "Severity", "Flags"]
+
+    st.dataframe(display, use_container_width=True, hide_index=True, height=500)
+
+    # Download
+    csv_data = fdf.copy()
+    csv_data["date"] = csv_data["date"].dt.strftime("%d/%m/%Y")
+    csv_data["anomaly_flags"] = csv_data["anomaly_flags"].apply(lambda x: "; ".join(x))
+    st.download_button(
+        "⬇️ Download Filtered CSV",
+        data=csv_data.to_csv(index=False),
+        file_name="upi_analyzed.csv",
+        mime="text/csv",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: BUDGET TRACKER  🎯
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🎯 Budget Tracker":
+
+    st.markdown("<div class='section-header'>🎯 Monthly Budget Goals</div>", unsafe_allow_html=True)
+
+    # Month selector
+    available_months = sorted(df[df["type"] == "Debit"]["month"].unique().tolist(), reverse=True)
+    sel_month = st.selectbox("View month", available_months, index=0)
+
+    # ── Budget editor ────────────────────────────────────────────────────────
+    with st.expander("✏️  Edit monthly budgets", expanded=False):
+        st.markdown("<small style='color:#8A8AB0'>Set your monthly spending limit per category (₹)</small>", unsafe_allow_html=True)
+        cols = st.columns(3)
+        new_budgets = {}
+        for i, (cat, default) in enumerate(st.session_state.budgets.items()):
+            with cols[i % 3]:
+                new_budgets[cat] = st.number_input(
+                    cat, min_value=0, value=int(default), step=500, key=f"budget_{cat}"
+                )
+        if st.button("💾 Save Budgets"):
+            st.session_state.budgets = new_budgets
+            st.success("Budgets saved!")
+            st.rerun()
+
+    # ── Compute status ───────────────────────────────────────────────────────
+    budget_status = compute_budget_status(df, st.session_state.budgets, sel_month)
+    health        = get_overall_budget_health(budget_status)
+    alerts        = get_budget_alerts(budget_status)
+
+    # ── Health KPIs ──────────────────────────────────────────────────────────
+    h1, h2, h3, h4 = st.columns(4)
+    for col, label, val, color in [
+        (h1, "Total Budget",    f"₹{health['total_budget']:,.0f}",   "#6C63FF"),
+        (h2, "Spent So Far",    f"₹{health['total_spent']:,.0f}",    "#FF6B6B"),
+        (h3, "Remaining",       f"₹{health['total_remaining']:,.0f}","#4ECDC4"),
+        (h4, "Categories Over", health["over_count"],                "#FFD93D"),
+    ]:
+        with col:
+            st.markdown(f"""
+            <div class='kpi-card'>
+                <div class='kpi-value' style='color:{color}; font-size:1.5rem;'>{val}</div>
+                <div class='kpi-label'>{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Alerts ───────────────────────────────────────────────────────────────
+    if alerts:
+        st.markdown("<div class='section-header'>⚠️ Alerts</div>", unsafe_allow_html=True)
+        for severity, cat, msg in alerts:
+            color = "#FF6B6B" if "Over" in severity else ("#FF9F43" if "Incoming" in severity else "#FFD93D")
+            st.markdown(f"""
+            <div class='nudge-card' style='border-left-color:{color};'>
+                <b style='color:{color};'>{severity} — {cat}</b><br>
+                <span style='color:#C0C0D0;'>{msg}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Per-category progress bars ────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Category Progress</div>", unsafe_allow_html=True)
+
+    status_colors = {
+        "Over Budget": "#FF6B6B", "Critical": "#FF9F43",
+        "Warning": "#FFD93D",     "On Track": "#4ECDC4",  "Healthy": "#6BCB77",
+    }
+
+    for _, row in budget_status.iterrows():
+        if row["budget"] == 0 and row["spent"] == 0:
+            continue
+
+        pct   = min(row["pct_used"], 100)
+        color = status_colors.get(row["status"], "#6C63FF")
+        proj_note = ""
+        if row["will_breach"] and row["days_remaining"] > 0:
+            proj_note = f" · 🔺 Projected ₹{row['projected_eom']:,.0f} by month end"
+
+        st.markdown(f"""
+        <div style='margin-bottom:18px;'>
+          <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;'>
+            <span style='font-family:DM Sans; font-weight:600; color:#E0E0F0; font-size:0.9rem;'>{row['category']}</span>
+            <span style='font-family:Space Mono; font-size:0.8rem; color:{color};'>
+              ₹{row['spent']:,.0f} / ₹{row['budget']:,.0f}
+              &nbsp;<span style='background:rgba(0,0,0,0.3); padding:1px 8px; border-radius:10px; font-size:0.7rem;'>{row['status']}</span>
+            </span>
+          </div>
+          <div style='background:#1a1a2e; border-radius:6px; height:10px; overflow:hidden;'>
+            <div style='width:{pct}%; height:100%; background:{color}; border-radius:6px;
+                        transition: width 0.5s ease; box-shadow: 0 0 8px {color}55;'></div>
+          </div>
+          <div style='font-size:0.73rem; color:#8A8AB0; margin-top:4px; font-family:DM Sans;'>
+            {row['pct_used']:.0f}% used · ₹{row['daily_burn']:,.0f}/day burn rate{proj_note}
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Burn-rate chart ───────────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Burn Rate vs Budget (Monthly Projection)</div>", unsafe_allow_html=True)
+    valid = budget_status[(budget_status["budget"] > 0)]
+
+    fig_b = go.Figure()
+    fig_b.add_trace(go.Bar(
+        name="Spent", x=valid["category"], y=valid["spent"],
+        marker_color="#6C63FF", opacity=0.9,
+    ))
+    fig_b.add_trace(go.Bar(
+        name="Projected EOM", x=valid["category"], y=valid["projected_eom"],
+        marker_color="#FF9F43", opacity=0.6,
+    ))
+    fig_b.add_trace(go.Scatter(
+        name="Budget Limit", x=valid["category"], y=valid["budget"],
+        mode="markers", marker=dict(symbol="line-ew", size=18, color="#FF6B6B",
+                                    line=dict(width=2, color="#FF6B6B")),
+    ))
+    fig_b.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#E0E0E0"), barmode="overlay",
+        xaxis=dict(showgrid=False, tickangle=-25),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", title="₹"),
+        legend=dict(orientation="h", y=1.1),
+        margin=dict(l=20, r=20, t=40, b=80),
+        height=380,
+    )
+    st.plotly_chart(fig_b, use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: FORECAST  🔮
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🔮 Forecast":
+
+    st.markdown("<div class='section-header'>🔮 Next Month Spend Forecast</div>", unsafe_allow_html=True)
+    st.markdown("<small style='color:#8A8AB0'>Uses Auto-ARIMA / Holt-Winters / Linear Trend based on your history length</small>", unsafe_allow_html=True)
+
+    with st.spinner("Running forecast models…"):
+        forecast_df   = forecast_all_categories(df)
+        total_forecast = get_total_forecast(forecast_df)
+
+    if total_forecast:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='nudge-card' style='border-left-color:#6C63FF; font-size:1rem; padding:20px 24px;'>
+            🔮 <b>Total Forecast for {total_forecast['month']}:</b><br><br>
+            {total_forecast['narrative']}
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Forecast bar chart with confidence interval ───────────────────────────
+    st.markdown("<div class='section-header'>Forecast by Category</div>", unsafe_allow_html=True)
+
+    fig_f = go.Figure()
+
+    fig_f.add_trace(go.Bar(
+        name="Forecast (Point)",
+        x=forecast_df["category"],
+        y=forecast_df["point"],
+        marker_color="#6C63FF",
+        opacity=0.85,
+        error_y=dict(
+            type="data",
+            symmetric=False,
+            array=(forecast_df["upper_80"] - forecast_df["point"]).tolist(),
+            arrayminus=(forecast_df["point"] - forecast_df["lower_80"]).tolist(),
+            color="#FFD93D",
+            thickness=2,
+            width=6,
+        ),
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Forecast: ₹%{y:,.0f}<br>"
+            "<extra></extra>"
+        ),
+    ))
+
+    fig_f.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#E0E0E0"),
+        xaxis=dict(showgrid=False, tickangle=-25),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", title="Forecast ₹"),
+        margin=dict(l=20, r=20, t=40, b=80),
+        height=380,
+    )
+    st.plotly_chart(fig_f, use_container_width=True)
+
+    # ── Per-category history + forecast sparklines ───────────────────────────
+    st.markdown("<div class='section-header'>History + Forecast per Category</div>", unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    for i, (_, row) in enumerate(forecast_df.iterrows()):
+        with cols[i % 3]:
+            hist_y = row.get("history_series", [])
+            hist_x = row.get("history_index", [])
+            if not hist_y:
+                continue
+
+            # Trend color
+            trend_color = {"increasing": "#FF6B6B", "decreasing": "#4ECDC4", "stable": "#FFD93D"}.get(
+                row["trend"], "#6C63FF"
+            )
+
+            fig_s = go.Figure()
+            fig_s.add_trace(go.Scatter(
+                x=hist_x + [row["forecast_month"]],
+                y=hist_y + [row["point"]],
+                mode="lines+markers",
+                line=dict(color="#6C63FF", width=2),
+                marker=dict(size=5),
+                showlegend=False,
+            ))
+            # Confidence band (just the forecast point with error bar)
+            fig_s.add_trace(go.Scatter(
+                x=[row["forecast_month"]],
+                y=[row["point"]],
+                mode="markers",
+                marker=dict(size=10, color=trend_color, symbol="diamond"),
+                error_y=dict(
+                    type="data", symmetric=False,
+                    array=[row["upper_80"] - row["point"]],
+                    arrayminus=[row["point"] - row["lower_80"]],
+                    color=trend_color,
+                ),
+                showlegend=False,
+                name="Forecast",
+            ))
+            fig_s.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#E0E0E0", size=9),
+                margin=dict(l=5, r=5, t=30, b=5),
+                xaxis=dict(showgrid=False, tickfont=dict(size=8)),
+                yaxis=dict(showgrid=False, tickfont=dict(size=8)),
+                title=dict(text=f"{row['category']}", font=dict(size=11)),
+                height=160,
+            )
+            st.plotly_chart(fig_s, use_container_width=True)
+            st.markdown(
+                f"<div style='font-size:0.72rem; color:#8A8AB0; font-family:DM Sans; "
+                f"margin-top:-10px; margin-bottom:14px;'>₹{row['lower_80']:,.0f}–₹{row['upper_80']:,.0f} "
+                f"· {row['method']}</div>",
+                unsafe_allow_html=True,
+            )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: MULTI-ACCOUNT  🏦
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🏦 Multi-Account":
+
+    st.markdown("<div class='section-header'>🏦 Multi-Account Merge & Deduplication</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='nudge-card' style='border-left-color:#4ECDC4;'>
+        Upload CSVs from multiple UPI apps (GPay + PhonePe + bank) via the sidebar.
+        This engine detects <b>cross-account duplicate transactions</b> using fuzzy matching
+        on description, amount, and date proximity — so your analytics aren't double-counted.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if merged_raw is not None:
+        dedup_report = get_dedup_report(merged_raw)
+
+        # KPIs
+        d1, d2, d3, d4 = st.columns(4)
+        for col, label, val, color in [
+            (d1, "Accounts Merged",   len(dedup_report["sources"]),                    "#6C63FF"),
+            (d2, "Total Transactions", len(merged_raw),                                "#A29BFE"),
+            (d3, "Duplicates Found",  dedup_report["total_duplicates"],                "#FF9F43"),
+            (d4, "Amount De-noised",  f"₹{dedup_report['amount_deduplicated']:,.0f}", "#4ECDC4"),
+        ]:
+            with col:
+                st.markdown(f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value' style='color:{color}; font-size:1.5rem;'>{val}</div>
+                    <div class='kpi-label'>{label}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Source breakdown
+        st.markdown("<div class='section-header'>Account Sources</div>", unsafe_allow_html=True)
+        source_counts = merged_raw.groupby("source").size().reset_index(name="transactions")
+        source_counts["debit_amount"] = merged_raw.groupby("source").apply(
+            lambda g: g[g["type"] == "Debit"]["amount"].sum()
+        ).values
+
+        for _, sr in source_counts.iterrows():
+            st.markdown(f"""
+            <div style='display:flex; justify-content:space-between; padding:12px 16px;
+                        background:#1a1a2e; border-radius:8px; margin-bottom:6px; border:1px solid rgba(255,255,255,0.05);'>
+                <span style='font-family:DM Sans; color:#E0E0F0; font-weight:600;'>🏦 {sr['source']}</span>
+                <span style='font-family:Space Mono; color:#8A8AB0; font-size:0.85rem;'>
+                    {sr['transactions']} txns · ₹{sr['debit_amount']:,.0f} spent
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Duplicate details
+        if dedup_report["total_duplicates"] > 0:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-header'>Detected Duplicates</div>", unsafe_allow_html=True)
+
+            dup_display = dedup_report["duplicate_rows"].copy()
+            dup_display["date"] = pd.to_datetime(dup_display["date"]).dt.strftime("%d %b %Y")
+            dup_display["amount"] = dup_display["amount"].apply(lambda x: f"₹{x:,.0f}")
+            st.dataframe(dup_display, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ No duplicate transactions found across your accounts!")
+
+        # How dedup works
+        with st.expander("ℹ️ How deduplication works"):
+            st.markdown("""
+            A transaction pair is flagged as duplicate if **all** of:
+            - **Amount** matches within ±₹1 (handles rounding)
+            - **Date** is within ±1 day of each other
+            - **Description** fuzzy-match score ≥ 72/100 (using token sort ratio)
+            - Both transactions are **Debit** type
+
+            **Resolution:** The transaction with the richer/longer description is kept.
+            The other is excluded from all analytics.
+
+            You can adjust `FUZZY_THRESHOLD` and `DATE_WINDOW_DAYS` in `modules/deduplicator.py`.
+            """)
+    else:
+        st.info("Upload your primary CSV in the sidebar, then add extra account CSVs using 'Add more accounts'.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: AI ADVISOR  🤖
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🤖 AI Advisor":
+
+    st.markdown("<div class='section-header'>🤖 AI Financial Advisor</div>", unsafe_allow_html=True)
+
+    if not ANTHROPIC_AVAILABLE:
+        st.error("Anthropic SDK not installed. Run: `pip install anthropic`")
+        st.stop()
+
+    client = get_api_client()
+
+    if client is None:
+        st.warning("""
+        **API key not configured.** To enable the AI Advisor:
+
+        **Option A — Streamlit secrets** (recommended):
+        Create `.streamlit/secrets.toml` with:
+        ```toml
+        ANTHROPIC_API_KEY = "sk-ant-..."
+        ```
+
+        **Option B — Environment variable:**
+        ```bash
+        export ANTHROPIC_API_KEY="sk-ant-..."
+        streamlit run app.py
+        ```
+        """)
+        st.stop()
+
+    # ── Auto-summary ─────────────────────────────────────────────────────────
+    if st.button("✨ Generate Monthly Financial Summary", type="primary"):
+        with st.spinner("Analysing your spending data…"):
+            summary = generate_monthly_summary(client, st.session_state.ai_context)
+        st.markdown(f"""
+        <div class='nudge-card' style='border-left-color:#6C63FF; padding:20px 24px; font-size:0.92rem; line-height:1.8;'>
+            {summary}
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Starter questions ─────────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Quick Questions</div>", unsafe_allow_html=True)
+    q_cols = st.columns(4)
+    for i, q in enumerate(STARTER_QUESTIONS):
+        with q_cols[i % 4]:
+            if st.button(q, key=f"starter_{i}", use_container_width=True):
+                st.session_state.chat_history.append({"role": "user", "content": q})
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Chat history ──────────────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Chat</div>", unsafe_allow_html=True)
+
+    chat_container = st.container()
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                st.markdown(f"""
+                <div style='display:flex; justify-content:flex-end; margin-bottom:12px;'>
+                    <div style='background:#6C63FF; color:#fff; padding:10px 16px; border-radius:16px 16px 4px 16px;
+                                max-width:70%; font-family:DM Sans; font-size:0.88rem; line-height:1.5;'>
+                        {content}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style='display:flex; justify-content:flex-start; margin-bottom:12px;'>
+                    <div style='background:#1a1a2e; color:#E0E0F0; padding:10px 16px; border-radius:16px 16px 16px 4px;
+                                max-width:75%; font-family:DM Sans; font-size:0.88rem; line-height:1.6;
+                                border:1px solid rgba(108,99,255,0.2);'>
+                        {content}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ── Auto-respond to pending user message ──────────────────────────────────
+    if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
+        last_user_msg = st.session_state.chat_history[-1]["content"]
+        history_for_api = st.session_state.chat_history[:-1]
+
+        with st.spinner("Thinking…"):
+            response = chat_once(client, st.session_state.ai_context, history_for_api, last_user_msg)
+
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        st.rerun()
+
+    # ── Input ─────────────────────────────────────────────────────────────────
+    col_input, col_btn, col_clear = st.columns([6, 1, 1])
+    with col_input:
+        user_input = st.text_input("Ask anything about your spending…",
+                                   placeholder="e.g. How can I save ₹5000 next month?",
+                                   label_visibility="collapsed", key="chat_input")
+    with col_btn:
+        send = st.button("Send →", type="primary", use_container_width=True)
+    with col_clear:
+        if st.button("Clear", use_container_width=True):
+            st.session_state.chat_history = []
+            st.rerun()
+
+    if send and user_input.strip():
+        st.session_state.chat_history.append({"role": "user", "content": user_input.strip()})
+        st.rerun()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: BENCHMARKS  📈
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📈 Benchmarks":
+
+    st.markdown("<div class='section-header'>📈 Peer Benchmarking</div>", unsafe_allow_html=True)
+    st.markdown("<small style='color:#8A8AB0'>Compare your spending to India city-tier averages by income bracket</small>", unsafe_allow_html=True)
+
+    # ── User profile inputs ───────────────────────────────────────────────────
+    p1, p2 = st.columns(2)
+    with p1:
+        city_tier = st.selectbox("Your city tier",
+            ["Tier 1 (Metro)", "Tier 2 (Mid-size)", "Tier 3 (Small city/town)"],
+            index=0)
+        city_tier_key = city_tier.split(" ")[0] + " " + city_tier.split(" ")[1]   # "Tier 1"
+    with p2:
+        monthly_income = st.number_input(
+            "Monthly take-home income (₹)",
+            min_value=10_000, max_value=10_00_000,
+            value=60_000, step=5_000,
+        )
+
+    # ── Compute ───────────────────────────────────────────────────────────────
+    bench_df       = compute_benchmarks(cat_summary, stats["months_covered"], city_tier_key, monthly_income)
+    savings_bench  = get_savings_benchmark(insights["savings_rate"]["rate"], city_tier_key, monthly_income)
+    over_cats, under_cats = get_standout_categories(bench_df)
+
+    # ── Savings rate vs peers ─────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='nudge-card' style='border-left-color:{savings_bench["color"]};'>
+        <b style='color:{savings_bench["color"]};'>{savings_bench["label"]}</b><br>
+        {savings_bench["message"]}
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Standouts ────────────────────────────────────────────────────────────
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("<div class='section-header'>🔺 Overspending vs Peers</div>", unsafe_allow_html=True)
+        for _, row in over_cats.iterrows():
+            st.markdown(f"""
+            <div style='padding:12px 16px; background:#1a1a2e; border-radius:8px; margin-bottom:6px;
+                        border-left:3px solid #FF6B6B;'>
+                <div style='font-family:DM Sans; font-weight:600; color:#E0E0F0;'>{row['category']}</div>
+                <div style='font-size:0.8rem; color:#8A8AB0; margin-top:3px;'>
+                    You: ₹{row['user_monthly_avg']:,.0f}/mo · Peers: ₹{row['benchmark']:,.0f}/mo ·
+                    <span style='color:#FF6B6B;'>{row['ratio']:.1f}x</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with c2:
+        st.markdown("<div class='section-header'>✅ Spending Less Than Peers</div>", unsafe_allow_html=True)
+        for _, row in under_cats.iterrows():
+            st.markdown(f"""
+            <div style='padding:12px 16px; background:#1a1a2e; border-radius:8px; margin-bottom:6px;
+                        border-left:3px solid #4ECDC4;'>
+                <div style='font-family:DM Sans; font-weight:600; color:#E0E0F0;'>{row['category']}</div>
+                <div style='font-size:0.8rem; color:#8A8AB0; margin-top:3px;'>
+                    You: ₹{row['user_monthly_avg']:,.0f}/mo · Peers: ₹{row['benchmark']:,.0f}/mo ·
+                    <span style='color:#4ECDC4;'>{row['ratio']:.1f}x</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── Full comparison chart ─────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>You vs Peers — Full Comparison</div>", unsafe_allow_html=True)
+
+    fig_bench = go.Figure()
+    fig_bench.add_trace(go.Bar(
+        name="Your Avg (monthly)",
+        x=bench_df["category"],
+        y=bench_df["user_monthly_avg"],
+        marker_color="#6C63FF",
+        opacity=0.9,
+    ))
+    fig_bench.add_trace(go.Bar(
+        name="Peer Avg (monthly)",
+        x=bench_df["category"],
+        y=bench_df["benchmark"],
+        marker_color="#4ECDC4",
+        opacity=0.6,
+    ))
+    fig_bench.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#E0E0E0"), barmode="group",
+        xaxis=dict(showgrid=False, tickangle=-25),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", title="₹/month"),
+        legend=dict(orientation="h", y=1.1),
+        margin=dict(l=20, r=20, t=40, b=80),
+        height=380,
+    )
+    st.plotly_chart(fig_bench, use_container_width=True)
+
+    # ── Ratio heatmap (how many x vs peers) ──────────────────────────────────
+    st.markdown("<div class='section-header'>Spend Ratio vs Peers</div>", unsafe_allow_html=True)
+
+    fig_ratio = go.Figure(go.Bar(
+        x=bench_df["category"],
+        y=bench_df["ratio"],
+        marker_color=bench_df["color"].tolist(),
+        text=[f"{r:.1f}x" for r in bench_df["ratio"]],
+        textposition="outside",
+        textfont=dict(size=10),
+        hovertemplate="<b>%{x}</b><br>Ratio: %{y:.2f}x<extra></extra>",
+    ))
+    fig_ratio.add_hline(y=1.0, line_dash="dash", line_color="#FFD93D",
+                         annotation_text="Peer Average", annotation_position="top right")
+    fig_ratio.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#E0E0E0"),
+        xaxis=dict(showgrid=False, tickangle=-25),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", title="Ratio (1.0 = peer avg)"),
+        margin=dict(l=20, r=20, t=40, b=80),
+        height=350,
+    )
+    st.plotly_chart(fig_ratio, use_container_width=True)
+
+    # ── Category insights table ───────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Category Insights</div>", unsafe_allow_html=True)
+    insight_display = bench_df[["category", "user_monthly_avg", "benchmark", "ratio", "vs_peers", "insight"]].copy()
+    insight_display.columns = ["Category", "Your Monthly (₹)", "Peer Avg (₹)", "Ratio", "vs Peers", "Insight"]
+    insight_display["Your Monthly (₹)"] = insight_display["Your Monthly (₹)"].apply(lambda x: f"₹{x:,.0f}")
+    insight_display["Peer Avg (₹)"]     = insight_display["Peer Avg (₹)"].apply(lambda x: f"₹{x:,.0f}")
+    insight_display["Ratio"]            = insight_display["Ratio"].apply(lambda x: f"{x:.2f}x")
+    st.dataframe(insight_display, use_container_width=True, hide_index=True)

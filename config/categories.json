@@ -1,0 +1,364 @@
+{
+  "Food & Dining": {
+    "keywords": [
+      "zomato",
+      "swiggy",
+      "restaurant",
+      "cafe",
+      "coffee",
+      "pizza",
+      "burger",
+      "biryani",
+      "dhaba",
+      "hotel",
+      "food",
+      "eat",
+      "kitchen",
+      "mess",
+      "canteen",
+      "dominos",
+      "kfc",
+      "mcdonalds",
+      "subway",
+      "starbucks",
+      "chaayos",
+      "barbeque",
+      "bakery",
+      "halwai",
+      "lassi",
+      "juice",
+      "snack",
+      "tiffin",
+      "dabba",
+      "roll",
+      "wrap",
+      "shawarma",
+      "thali",
+      "meal",
+      "eatery",
+      "udupi",
+      "andhra",
+      "punjabi",
+      "bengali",
+      "south indian",
+      "north indian",
+      "fastfood",
+      "foodcourt",
+      "eatfit",
+      "freshmenu",
+      "faasos",
+      "box8",
+      "behrouz",
+      "wow momo",
+      "bikanervala"
+    ],
+    "icon": "🍔",
+    "color": "#FF6B6B"
+  },
+
+  "Groceries": {
+    "keywords": [
+      "grocery",
+      "vegetables",
+      "fruits",
+      "milk",
+      "sabzi",
+      "kirana",
+      "provision",
+      "supermarket",
+      "fresh",
+      "organic",
+      "bigbasket",
+      "zepto",
+      "blinkit",
+      "dmart",
+      "reliance",
+      "jiomart",
+      "spencer",
+      "nilgiris",
+      "lulu",
+      "heritage",
+      "more supermarket",
+      "nature basket"
+    ],
+    "icon": "🛒",
+    "color": "#6BCB77"
+  },
+
+  "Transport": {
+    "keywords": [
+      "uber",
+      "ola",
+      "rapido",
+      "auto",
+      "cab",
+      "taxi",
+      "metro",
+      "bus",
+      "irctc",
+      "train",
+      "railway",
+      "flight",
+      "airline",
+      "indigo",
+      "spicejet",
+      "air india",
+      "petrol",
+      "fuel",
+      "diesel",
+      "parking",
+      "toll",
+      "redbus",
+      "makemytrip",
+      "goibibo",
+      "yatra",
+      "bmtc",
+      "dtc",
+      "best bus"
+    ],
+    "icon": "🚗",
+    "color": "#4ECDC4"
+  },
+
+  "Shopping": {
+    "keywords": [
+      "amazon",
+      "flipkart",
+      "myntra",
+      "ajio",
+      "meesho",
+      "nykaa",
+      "purplle",
+      "shopsy",
+      "snapdeal",
+      "tata cliq",
+      "croma",
+      "vijay sales",
+      "decathlon",
+      "pantaloons",
+      "westside",
+      "max fashion",
+      "h&m",
+      "zara",
+      "lifestyle",
+      "ikea"
+    ],
+    "icon": "🛍️",
+    "color": "#FFD93D"
+  },
+
+  "Subscriptions": {
+    "keywords": [
+      "netflix",
+      "spotify",
+      "youtube premium",
+      "prime",
+      "hotstar",
+      "disney",
+      "zee5",
+      "sony liv",
+      "apple",
+      "icloud",
+      "google one",
+      "membership",
+      "subscription",
+      "auto debit",
+      "recurring"
+    ],
+    "icon": "🔁",
+    "color": "#C77DFF"
+  },
+
+  "Entertainment": {
+    "keywords": [
+      "bookmyshow",
+      "pvr",
+      "inox",
+      "cinepolis",
+      "game",
+      "steam",
+      "playstation",
+      "xbox",
+      "pubg",
+      "bgmi",
+      "gaming",
+      "concert",
+      "event"
+    ],
+    "icon": "🎬",
+    "color": "#C77DFF"
+  },
+
+  "Bills & Utilities": {
+    "keywords": [
+      "electricity",
+      "water",
+      "gas",
+      "broadband",
+      "wifi",
+      "internet",
+      "airtel",
+      "jio",
+      "vi",
+      "vodafone",
+      "bsnl",
+      "idea",
+      "recharge",
+      "postpaid",
+      "prepaid",
+      "dth",
+      "tata sky",
+      "dish tv",
+      "cable",
+      "act",
+      "hathway",
+      "maintenance",
+      "society"
+    ],
+    "icon": "⚡",
+    "color": "#F9CA24"
+  },
+
+  "Finance & Investment": {
+    "keywords": [
+      "zerodha",
+      "groww",
+      "upstox",
+      "ipo",
+      "mutual fund",
+      "sip",
+      "insurance",
+      "lic",
+      "hdfc",
+      "icici",
+      "sbi",
+      "axis",
+      "kotak",
+      "loan",
+      "emi",
+      "credit",
+      "saving",
+      "investment",
+      "nps",
+      "ppf",
+      "fd",
+      "rd",
+      "stock",
+      "trading",
+      "coin",
+      "paytm money",
+      "et money"
+    ],
+    "icon": "💰",
+    "color": "#00D2D3"
+  },
+
+  "BNPL & Credit": {
+    "keywords": [
+      "simpl",
+      "lazypay",
+      "pay later",
+      "amazon pay later",
+      "slice",
+      "postpe",
+      "zestmoney",
+      "kreditbee",
+      "uni card"
+    ],
+    "icon": "💳",
+    "color": "#FF7675"
+  },
+
+  "Health & Medical": {
+    "keywords": [
+      "pharmacy",
+      "medical",
+      "hospital",
+      "clinic",
+      "doctor",
+      "apollo",
+      "medplus",
+      "1mg",
+      "netmeds",
+      "practo",
+      "healthkart",
+      "gym",
+      "fitness",
+      "cult",
+      "diagnostics",
+      "lab",
+      "test",
+      "medicine",
+      "dentist",
+      "optician"
+    ],
+    "icon": "🏥",
+    "color": "#FF9F43"
+  },
+
+  "Education": {
+    "keywords": [
+      "udemy",
+      "coursera",
+      "unacademy",
+      "byju",
+      "vedantu",
+      "upgrad",
+      "school",
+      "college",
+      "university",
+      "tuition",
+      "coaching",
+      "books",
+      "stationery",
+      "skillshare",
+      "edx",
+      "nptel"
+    ],
+    "icon": "📚",
+    "color": "#54A0FF"
+  },
+
+  "Travel & Stays": {
+    "keywords": [
+      "hotel",
+      "oyo",
+      "treebo",
+      "fabhotel",
+      "airbnb",
+      "resort",
+      "booking",
+      "agoda",
+      "trivago",
+      "cleartrip",
+      "stay"
+    ],
+    "icon": "✈️",
+    "color": "#FD79A8"
+  },
+
+  "P2P Transfers": {
+    "keywords": [
+      "upi",
+      "transfer",
+      "sent to",
+      "received from",
+      "payment",
+      "pay"
+    ],
+    "icon": "💸",
+    "color": "#A29BFE"
+  },
+
+  "Income": {
+    "keywords": ["salary", "credited", "refund", "cashback", "bonus"],
+    "icon": "💵",
+    "color": "#00C853"
+  },
+
+  "Others": {
+    "keywords": [],
+    "icon": "📦",
+    "color": "#B2BEC3"
+  }
+}
