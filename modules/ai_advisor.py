@@ -137,20 +137,20 @@ def generate_monthly_summary(client, system_prompt: str) -> str:
     prompt = (
         "Give me a concise financial health report based on my data. "
         "Include: 1) One key win 2) One area of concern 3) One specific action I should take this week. "
-        "Use emojis. Keep it under 150 words."
+        "Use 1-2 emojis. Keep it under 150 words. Focus on financial education"
     )
     return chat_once(client, system_prompt, [], prompt)
 
 
 STARTER_QUESTIONS = [
-    "Why did I overspend this month?",
-    "Which category should I cut to save ₹2000/month?",
-    "How does my food spending compare to last month?",
-    "Am I on track to save 20% of my income?",
-    "Which subscriptions are not worth keeping?",
-    "What's my biggest financial risk right now?",
-    "Give me a 30-day challenge to reduce spend by 15%.",
-    "Which day of the week am I most impulsive?",
+        "Where is my money leaking?",
+        "What should I cut this month?",
+        "Am I saving enough?",
+        "Which subscriptions can I cancel?",
+        "How impulsive is my spending?",
+        "What's my biggest financial risk?",
+        "Give me a 30-day savings challenge",
+        "How does my food spend look?",
 ]
 
 # Backward-compat alias used in app.py

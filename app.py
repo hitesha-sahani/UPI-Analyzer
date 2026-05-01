@@ -1,3 +1,5 @@
+from PIL import Image
+
 import streamlit as st
 import pandas as pd
 import os
@@ -5,6 +7,8 @@ import numpy as np
 import json
 import plotly.graph_objects as go
 from pathlib import Path
+import base64
+
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -33,6 +37,11 @@ from modules.benchmarks       import (compute_benchmarks, get_savings_benchmark,
                                       get_standout_categories)
 
 
+def _img_to_b64(path: str) -> str:
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+logo_b64 = _img_to_b64("MoneyOS_Logo.png")
 # ── Custom CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -251,11 +260,13 @@ body {
 # SIDEBAR
 # ──────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div style='text-align:center; padding: 20px 0 10px;'>
-        <div style='font-size:2.2rem;'>💸</div>
-        <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.1rem; color:#151515;'>ArthaLab</div>
-        <div style='font-size:0.72rem; color:#1769ff; letter-spacing:0.1em; text-transform:uppercase;'>Money OS</div>
+    st.markdown(f"""
+    <div style='display:flex; align-items:center; gap:12px; padding:16px 0 10px;'>
+        <img src='data:image/png;base64,{logo_b64}' width='48' style='border-radius:8px;'/>
+        <div>
+            <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.05rem; color:#151515;'>ArthaLab</div>
+            <div style='font-size:0.70rem; color:#1769ff; letter-spacing:0.1em; text-transform:uppercase;'>Money OS</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -948,19 +959,6 @@ elif page == "Transactions":
     display.columns = ["Date", "Description", "Merchant", "Category", "Amount", "Type", "Signal"]
     st.dataframe(display, use_container_width=True, hide_index=True, height=520)
 
-
-# PAGE: ASK AI
-elif page == "Ask AI":
-    st.markdown("<div class='section-header'>Ask AI</div>", unsafe_allow_html=True)
-    st.info("The AI advisor is still available, but the prototype now leads with deterministic insights first.")
-    st.markdown(f"""
-    <div class='action-card'>
-        <div class='micro-label'>Suggested prompt</div>
-        <div class='card-title'>How can I act on this recommendation: {next_action}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
 # PAGE: OVERVIEW
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Overview":
@@ -1618,86 +1616,215 @@ elif page == "🏦 Multi-Account":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "AI Coach":
 
-    st.markdown("<div class='section-header'>AI Money Coach</div>", unsafe_allow_html=True)
-
+    # ── Guard checks ──────────────────────────────────────────────────────────
     if not ANTHROPIC_AVAILABLE:
         st.error("Groq SDK not installed. Run: `pip install groq`")
         st.stop()
 
     client = get_api_client()
-
     if client is None:
         st.warning("API key not configured. Set GROQ_API_KEY environment variable.")
         st.stop()
 
-    # ── Auto-summary ─────────────────────────────────────────────────────────
-    if st.button("✨ Generate Monthly Financial Summary", type="primary"):
-        with st.spinner("Analysing your spending data…"):
-            summary = generate_monthly_summary(client, st.session_state.ai_context)
-        st.markdown(f"""
-        <div class='nudge-card' style='border-left-color:#6C63FF; padding:20px 24px; font-size:0.92rem; line-height:1.8;'>
-            {summary}
+    # ── Session state ─────────────────────────────────────────────────────────
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "questions_asked" not in st.session_state:
+        st.session_state.questions_asked = 0
+    if "last_reset_date" not in st.session_state:
+        st.session_state.last_reset_date = pd.Timestamp.now().date()
+
+    # Reset daily limit at midnight
+    if st.session_state.last_reset_date != pd.Timestamp.now().date():
+        st.session_state.questions_asked = 0
+        st.session_state.last_reset_date = pd.Timestamp.now().date()
+
+    DAILY_LIMIT = 10
+    remaining = DAILY_LIMIT - st.session_state.questions_asked
+
+    # ── Page header ───────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style='padding: 8px 0 4px;'>
+        <div style='font-family:"DM Sans",sans-serif; font-size:1.6rem; font-weight:700; color:#151515;'>
+            Ask your money anything
+        </div>
+        <div style='font-size:0.88rem; color:#6c675f; margin-top:4px; font-family:"DM Sans",sans-serif;'>
+            Powered by your actual transaction data · Not generic advice
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Rate limit bar ────────────────────────────────────────────────────────
+    pct = (remaining / DAILY_LIMIT) * 100
+    bar_color = "#1769ff" if remaining > 4 else "#FF9F43" if remaining > 2 else "#FF6B6B"
+    st.markdown(f"""
+    <div style='display:flex; align-items:center; gap:12px; margin:12px 0 20px;'>
+        <div style='flex:1; background:#ede8e0; border-radius:99px; height:4px;'>
+            <div style='width:{pct}%; height:4px; background:{bar_color}; border-radius:99px; transition:width 0.4s;'></div>
+        </div>
+        <div style='font-size:0.75rem; color:#6c675f; font-family:"DM Sans",sans-serif; white-space:nowrap;'>
+            {remaining} of {DAILY_LIMIT} questions left today
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if remaining <= 0:
+        st.markdown("""
+        <div style='background:#fff8f0; border:1px solid #FF9F43; border-radius:12px;
+                    padding:20px 24px; text-align:center; font-family:"DM Sans",sans-serif;'>
+            <div style='font-size:1.3rem; margin-bottom:8px;'>🧠</div>
+            <div style='font-weight:600; color:#151515;'>You've used all 10 questions today</div>
+            <div style='color:#6c675f; font-size:0.88rem; margin-top:4px;'>Come back tomorrow — your limit resets at midnight.</div>
         </div>
         """, unsafe_allow_html=True)
+        st.stop()
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ── Monthly summary button ────────────────────────────────────────────────
+    col_btn, col_space = st.columns([1, 3])
+    with col_btn:
+        gen_summary = st.button(
+            "✦ Monthly snapshot",
+            use_container_width=True,
+            type="secondary",
+        )
+    if gen_summary:
+        if st.session_state.questions_asked < DAILY_LIMIT:
+            with st.spinner(""):
+                summary = generate_monthly_summary(client, st.session_state.ai_context)
+            st.session_state.questions_asked += 1
+            st.markdown(f"""
+            <div style='background:#f0f4ff; border:1px solid #d0dbff; border-radius:12px;
+                        padding:18px 22px; font-family:"DM Sans",sans-serif; font-size:0.9rem;
+                        color:#151515; line-height:1.8; margin-bottom:16px;'>
+                {summary}
+            </div>
+            """, unsafe_allow_html=True)
 
-    # ── Starter questions ─────────────────────────────────────────────────────
-    st.markdown("<div class='section-header'>Quick Questions</div>", unsafe_allow_html=True)
-    q_cols = st.columns(4)
-    for i, q in enumerate(STARTER_QUESTIONS):
-        with q_cols[i % 4]:
-            if st.button(q, key=f"starter_{i}", use_container_width=True):
-                st.session_state.chat_history.append({"role": "user", "content": q})
+    st.markdown("<div style='margin:8px 0 10px;'></div>", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='font-size:0.75rem; text-transform:uppercase; letter-spacing:0.08em;
+                color:#6c675f; font-family:"DM Sans",sans-serif; margin-bottom:10px;'>
+        Quick questions
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Render chips in rows of 4
+    for row_start in range(0, len(STARTER_QUESTIONS), 4):
+        cols = st.columns(4)
+        for i, col in enumerate(cols):
+            idx = row_start + i
+            if idx < len(STARTER_QUESTIONS):
+                with col:
+                    if st.button(
+                        STARTER_QUESTIONS[idx],
+                        key=f"chip_{idx}",
+                        use_container_width=True,
+                    ):
+                        if st.session_state.questions_asked < DAILY_LIMIT:
+                            st.session_state.chat_history.append({
+                                "role": "user",
+                                "content": STARTER_QUESTIONS[idx]
+                            })
+                            st.session_state.questions_asked += 1
+                            st.rerun()
+
+    # ── Chip styling ──────────────────────────────────────────────────────────
+    st.markdown("""
+    <style>
+    /* Chip style for starter questions */
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+        background: #ffffff !important;
+        border: 1px solid #ded9cf !important;
+        border-radius: 99px !important;
+        color: #151515 !important;
+        font-size: 0.8rem !important;
+        font-family: "DM Sans", sans-serif !important;
+        padding: 6px 14px !important;
+        transition: all 0.15s !important;
+    }
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
+        background: #f0f4ff !important;
+        border-color: #1769ff !important;
+        color: #1769ff !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:20px 0 8px;'></div>", unsafe_allow_html=True)
 
     # ── Chat history ──────────────────────────────────────────────────────────
-    st.markdown("<div class='section-header'>Chat</div>", unsafe_allow_html=True)
-
-    chat_container = st.container()
-    with chat_container:
+    if st.session_state.chat_history:
         for msg in st.session_state.chat_history:
-            role = msg["role"]
+            role    = msg["role"]
             content = msg["content"]
             if role == "user":
                 st.markdown(f"""
-                <div style='display:flex; justify-content:flex-end; margin-bottom:12px;'>
-                    <div style='background:#6C63FF; color:#fff; padding:10px 16px; border-radius:16px 16px 4px 16px;
-                                max-width:70%; font-family:DM Sans; font-size:0.88rem; line-height:1.5;'>
+                <div style='display:flex; justify-content:flex-end; margin-bottom:16px;'>
+                    <div style='background:#151515; color:#ffffff; padding:12px 18px;
+                                border-radius:18px 18px 4px 18px; max-width:65%;
+                                font-family:"DM Sans",sans-serif; font-size:0.88rem;
+                                line-height:1.55;'>
                         {content}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div style='display:flex; justify-content:flex-start; margin-bottom:12px;'>
-                    <div style='background:#1a1a2e; color:#E0E0F0; padding:10px 16px; border-radius:16px 16px 16px 4px;
-                                max-width:75%; font-family:DM Sans; font-size:0.88rem; line-height:1.6;
-                                border:1px solid rgba(108,99,255,0.2);'>
+                <div style='display:flex; justify-content:flex-start; margin-bottom:16px; gap:10px;'>
+                    <div style='width:28px; height:28px; border-radius:50%; background:#1769ff;
+                                display:flex; align-items:center; justify-content:center;
+                                font-size:0.7rem; color:white; flex-shrink:0; margin-top:4px;
+                                font-family:"DM Sans",sans-serif; font-weight:700;'>A</div>
+                    <div style='background:#ffffff; color:#151515; padding:12px 18px;
+                                border-radius:4px 18px 18px 18px; max-width:70%;
+                                font-family:"DM Sans",sans-serif; font-size:0.88rem;
+                                line-height:1.65; border:1px solid #ede8e0;'>
                         {content}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+    else:
+        # Empty state
+        st.markdown("""
+        <div style='text-align:center; padding:40px 20px; color:#6c675f;
+                    font-family:"DM Sans",sans-serif;'>
+            <div style='font-size:2rem; margin-bottom:12px;'>💬</div>
+            <div style='font-weight:600; color:#151515; font-size:1rem;'>
+                Your financial data is loaded and ready
+            </div>
+            <div style='font-size:0.85rem; margin-top:6px;'>
+                Pick a quick question above or type anything below
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # ── Auto-respond to pending user message ──────────────────────────────────
+    # ── Auto-respond with streaming ───────────────────────────────────────────
     if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
-        last_user_msg = st.session_state.chat_history[-1]["content"]
-        history_for_api = st.session_state.chat_history[:-1]
+        last_user_msg    = st.session_state.chat_history[-1]["content"]
+        history_for_api  = st.session_state.chat_history[-10:]  # cap at last 10
 
-        with st.spinner("Thinking…"):
-            response = chat_once(client, st.session_state.ai_context, history_for_api, last_user_msg)
+        # Show streaming response
+        with st.chat_message("assistant", avatar="💙"):
+            response = st.write_stream(
+                chat_stream(client, st.session_state.ai_context, history_for_api[:-1], last_user_msg)
+            )
 
         st.session_state.chat_history.append({"role": "assistant", "content": response})
         st.rerun()
 
-    # ── Input ─────────────────────────────────────────────────────────────────
-    col_input, col_btn, col_clear = st.columns([6, 1, 1])
+    # ── Input bar ─────────────────────────────────────────────────────────────
+    st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
+    col_input, col_send, col_clear = st.columns([7, 1.2, 0.9])
+
     with col_input:
-        user_input = st.text_input("Ask anything about your spending…",
-                                   placeholder="e.g. How can I save ₹5000 next month?",
-                                   label_visibility="collapsed", key="chat_input")
-    with col_btn:
+        user_input = st.text_input(
+            "chat_input_label",
+            placeholder="Ask anything about your spending…",
+            label_visibility="collapsed",
+            key="chat_input",
+        )
+    with col_send:
         send = st.button("Send →", type="primary", use_container_width=True)
     with col_clear:
         if st.button("Clear", use_container_width=True):
@@ -1705,9 +1832,15 @@ elif page == "AI Coach":
             st.rerun()
 
     if send and user_input.strip():
-        st.session_state.chat_history.append({"role": "user", "content": user_input.strip()})
-        st.rerun()
-
+        if st.session_state.questions_asked < DAILY_LIMIT:
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_input.strip()
+            })
+            st.session_state.questions_asked += 1
+            st.rerun()
+        else:
+            st.warning("You've reached today's limit of 10 questions.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: BENCHMARKS  📈
