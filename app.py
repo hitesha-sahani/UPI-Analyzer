@@ -769,7 +769,7 @@ if page == "Dashboard":
         (
             "Risk checks",
             str(anomaly_info["high_severity"]),
-            "High-signal transactions after removing date-only late-night noise.",
+            "Transactions flagged for unusual amount, duplicate charges, or suspicious patterns.",
         ),
     ]
     for col, (title, amount, detail) in zip(insight_cols, insight_items):
