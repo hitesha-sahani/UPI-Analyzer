@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 import numpy as np
 import json
 import plotly.graph_objects as go
@@ -25,9 +26,9 @@ from modules.budget_tracker   import (compute_budget_status, get_budget_alerts,
                                       get_overall_budget_health, DEFAULT_BUDGETS)
 from modules.forecaster       import forecast_all_categories, get_total_forecast
 from modules.deduplicator     import merge_accounts, deduplicate, get_dedup_report, get_clean_df
-from modules.ai_advisor       import (build_financial_context, get_api_client,
-                                      chat_stream, chat_once, generate_monthly_summary,
-                                      STARTER_QUESTIONS, ANTHROPIC_AVAILABLE)
+from modules.ai_advisor import (build_financial_context, get_api_client,
+                                  chat_stream, chat_once, generate_monthly_summary,
+                                  STARTER_QUESTIONS, ANTHROPIC_AVAILABLE, GROQ_AVAILABLE)
 from modules.benchmarks       import (compute_benchmarks, get_savings_benchmark,
                                       get_standout_categories)
 
@@ -1626,21 +1627,7 @@ elif page == "AI Coach":
     client = get_api_client()
 
     if client is None:
-        st.warning("""
-        **API key not configured.** To enable the AI Advisor:
-
-        **Option A — Streamlit secrets** (recommended):
-        Create `.streamlit/secrets.toml` with:
-        ```toml
-        GROQ_API_KEY = "gsk_..."
-        ```
-
-        **Option B — Environment variable:**
-        ```bash
-        export GROQ_API_KEY="gsk_..."
-        streamlit run app.py
-        ```
-        """)
+        st.warning("API key not configured. Set GROQ_API_KEY environment variable.")
         st.stop()
 
     # ── Auto-summary ─────────────────────────────────────────────────────────
