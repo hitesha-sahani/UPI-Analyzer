@@ -13,7 +13,6 @@ import base64
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ArthaLab Money OS",
-    page_icon="💸",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -26,8 +25,9 @@ from modules.insights         import generate_full_insights, generate_nudges
 from modules import charts
 
 # ── New feature imports ─────────────────────────────────────────────────────────
-from modules.budget_tracker   import (compute_budget_status, get_budget_alerts,
-                                      get_overall_budget_health, DEFAULT_BUDGETS)
+from modules.budget_tracker import (
+     compute_budget_status, compute_monthly_overview,get_budget_alerts,
+       DEFAULT_BUDGETS, ALL_CATEGORIES )
 from modules.forecaster       import forecast_all_categories, get_total_forecast
 from modules.deduplicator     import merge_accounts, deduplicate, get_dedup_report, get_clean_df
 from modules.ai_advisor import (build_financial_context, get_api_client,
@@ -568,6 +568,7 @@ with st.sidebar:
             "Learn",
             "Leaks",
             "Transactions",
+            "Budget",
             "AI Coach"
         ],
         label_visibility="collapsed"
@@ -1467,132 +1468,315 @@ elif page == "📋 Transactions":
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: BUDGET TRACKER  🎯
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "🎯 Budget Tracker":
 
-    st.markdown("<div class='section-header'>🎯 Monthly Budget Goals</div>", unsafe_allow_html=True)
+elif page == "Budget":
 
-    # Month selector
-    available_months = sorted(df[df["type"] == "Debit"]["month"].unique().tolist(), reverse=True)
-    sel_month = st.selectbox("View month", available_months, index=0)
+    st.markdown("<div class='section-header'>Budget Tracker</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<small style='color:#6c675f;'>Set your monthly budget. "
+        "Spend is pulled automatically from your statement.</small>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Budget editor ────────────────────────────────────────────────────────
-    with st.expander("✏️  Edit monthly budgets", expanded=False):
-        st.markdown("<small style='color:#8A8AB0'>Set your monthly spending limit per category (₹)</small>", unsafe_allow_html=True)
-        cols = st.columns(3)
-        new_budgets = {}
-        for i, (cat, default) in enumerate(st.session_state.budgets.items()):
-            with cols[i % 3]:
-                new_budgets[cat] = st.number_input(
-                    cat, min_value=0, value=int(default), step=500, key=f"budget_{cat}"
-                )
-        if st.button("💾 Save Budgets"):
-            st.session_state.budgets = new_budgets
-            st.success("Budgets saved!")
-            st.rerun()
+    # ── Session state ─────────────────────────────────────────────────────────
+    if "budgets" not in st.session_state:
+        st.session_state.budgets = {
+            k: {"amount": v["amount"], "period": v["period"]}
+            for k, v in DEFAULT_BUDGETS.items()
+        }
+    if "monthly_budget" not in st.session_state:
+        st.session_state.monthly_budget = 50000.0
 
-    # ── Compute status ───────────────────────────────────────────────────────
-    budget_status = compute_budget_status(df, st.session_state.budgets, sel_month)
-    health        = get_overall_budget_health(budget_status)
-    alerts        = get_budget_alerts(budget_status)
+    # ── Step 1 — Overall monthly budget ───────────────────────────────────────
+    st.markdown("""
+    <div style='font-family:"DM Sans",sans-serif; font-weight:700;
+                font-size:1rem; color:#151515; margin-bottom:8px;'>
+        What's your total monthly spending budget?
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ── Health KPIs ──────────────────────────────────────────────────────────
-    h1, h2, h3, h4 = st.columns(4)
+    budget_col, _ = st.columns([1, 2])
+    with budget_col:
+        monthly_budget = st.number_input(
+            "Monthly budget",
+            min_value=0,
+            max_value=50_00_000,
+            value=int(st.session_state.monthly_budget),
+            step=1000,
+            label_visibility="collapsed",
+            help="Your total monthly spending limit across all categories",
+        )
+        st.session_state.monthly_budget = float(monthly_budget)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Step 2 — Month overview grid ──────────────────────────────────────────
+    if monthly_budget > 0:
+        st.markdown("<div class='section-header'>Monthly Overview</div>", unsafe_allow_html=True)
+        monthly_overview = compute_monthly_overview(df, monthly_budget)
+
+        month_cols = st.columns(len(monthly_overview))
+        for i, (_, mrow) in enumerate(monthly_overview.iterrows()):
+            with month_cols[i]:
+                pct   = min(mrow["pct_used"], 100)
+                color = mrow["color"]
+                st.markdown(f"""
+                <div style='background:#ffffff; border:2px solid {color}; border-radius:12px;
+                            padding:16px 10px; text-align:center;'>
+                    <div style='font-family:"DM Sans",sans-serif; font-size:0.72rem;
+                                color:#6c675f; text-transform:uppercase; letter-spacing:0.06em;'>
+                        {mrow["month"]}
+                    </div>
+                    <div style='font-family:"DM Sans",sans-serif; font-weight:800;
+                                font-size:1.4rem; color:{color}; margin:6px 0;'>
+                        {pct:.0f}%
+                    </div>
+                    <div style='font-size:0.75rem; color:#151515; font-family:"DM Sans",sans-serif;'>
+                        ₹{mrow["spent"]:,.0f}
+                    </div>
+                    <div style='font-size:0.7rem; color:#6c675f; margin-top:2px;'>
+                        of ₹{mrow["budget"]:,.0f}
+                    </div>
+                    <div style='background:#f7f5f0; border-radius:99px; height:4px; margin-top:8px;'>
+                        <div style='width:{pct}%; height:4px; background:{color}; border-radius:99px;'></div>
+                    </div>
+                    <div style='font-size:0.68rem; color:{color}; font-weight:600;
+                                font-family:"DM Sans",sans-serif; margin-top:6px;'>
+                        {mrow["status"]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Step 3 — Select month to drill into ───────────────────────────────────
+    available_months = sorted(
+        df[df["type"] == "Debit"]["month"].unique().tolist(), reverse=True
+    )
+    st.markdown("<div class='section-header'>Category Breakdown</div>", unsafe_allow_html=True)
+
+    sel_col, _ = st.columns([1, 2])
+    with sel_col:
+        selected_month = st.selectbox("Select month", available_months, index=0)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Compute category status ───────────────────────────────────────────────
+    budget_status = compute_budget_status(
+        df,
+        st.session_state.budgets,
+        selected_month=selected_month,
+        monthly_budget=monthly_budget,
+    )
+    alerts = get_budget_alerts(budget_status)
+
+    # ── KPI row ───────────────────────────────────────────────────────────────
+    total_spent   = budget_status["spent"].sum()
+    total_budget  = budget_status["monthly_budget"].sum()
+    over_count    = int((budget_status["status"] == "Over Budget").sum())
+    warn_count    = int((budget_status["status"] == "Warning").sum())
+
+    k1, k2, k3, k4 = st.columns(4)
     for col, label, val, color in [
-        (h1, "Total Budget",    f"₹{health['total_budget']:,.0f}",   "#6C63FF"),
-        (h2, "Spent So Far",    f"₹{health['total_spent']:,.0f}",    "#FF6B6B"),
-        (h3, "Remaining",       f"₹{health['total_remaining']:,.0f}","#4ECDC4"),
-        (h4, "Categories Over", health["over_count"],                "#FFD93D"),
+        (k1, "Total budgeted",        f"₹{total_budget:,.0f}",  "#151515"),
+        (k2, "Total spent",           f"₹{total_spent:,.0f}",   "#FF6B6B"),
+        (k3, "Remaining",             f"₹{max(total_budget - total_spent, 0):,.0f}", "#1769ff"),
+        (k4, "Categories over limit", str(over_count),           "#FF9F43"),
     ]:
         with col:
             st.markdown(f"""
             <div class='kpi-card'>
-                <div class='kpi-value' style='color:{color}; font-size:1.5rem;'>{val}</div>
+                <div class='kpi-value' style='color:{color}; font-size:1.35rem;'>{val}</div>
                 <div class='kpi-label'>{label}</div>
             </div>
             """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Alerts ───────────────────────────────────────────────────────────────
+    # ── Alerts ────────────────────────────────────────────────────────────────
     if alerts:
         st.markdown("<div class='section-header'>⚠️ Alerts</div>", unsafe_allow_html=True)
         for severity, cat, msg in alerts:
-            color = "#FF6B6B" if "Over" in severity else ("#FF9F43" if "Incoming" in severity else "#FFD93D")
+            bc = "#FF6B6B" if "Over" in severity else "#FF9F43" if "Breach" in severity else "#FFD93D"
             st.markdown(f"""
-            <div class='nudge-card' style='border-left-color:{color};'>
-                <b style='color:{color};'>{severity} — {cat}</b><br>
-                <span style='color:#C0C0D0;'>{msg}</span>
+            <div class='nudge-card' style='border-left-color:{bc};'>
+                <b style='color:{bc};'>{severity} — {cat}</b><br>
+                <span style='font-size:0.85rem; color:#6c675f;'>{msg}</span>
             </div>
             """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Per-category progress bars ────────────────────────────────────────────
-    st.markdown("<div class='section-header'>Category Progress</div>", unsafe_allow_html=True)
-
-    status_colors = {
-        "Over Budget": "#FF6B6B", "Critical": "#FF9F43",
-        "Warning": "#FFD93D",     "On Track": "#4ECDC4",  "Healthy": "#6BCB77",
-    }
-
-    for _, row in budget_status.iterrows():
-        if row["budget"] == 0 and row["spent"] == 0:
-            continue
-
-        pct   = min(row["pct_used"], 100)
-        color = status_colors.get(row["status"], "#6C63FF")
-        proj_note = ""
-        if row["will_breach"] and row["days_remaining"] > 0:
-            proj_note = f" · 🔺 Projected ₹{row['projected_eom']:,.0f} by month end"
-
-        st.markdown(f"""
-        <div style='margin-bottom:18px;'>
-          <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;'>
-            <span style='font-family:DM Sans; font-weight:600; color:#E0E0F0; font-size:0.9rem;'>{row['category']}</span>
-            <span style='font-family:Space Mono; font-size:0.8rem; color:{color};'>
-              ₹{row['spent']:,.0f} / ₹{row['budget']:,.0f}
-              &nbsp;<span style='background:rgba(0,0,0,0.3); padding:1px 8px; border-radius:10px; font-size:0.7rem;'>{row['status']}</span>
-            </span>
-          </div>
-          <div style='background:#1a1a2e; border-radius:6px; height:10px; overflow:hidden;'>
-            <div style='width:{pct}%; height:100%; background:{color}; border-radius:6px;
-                        transition: width 0.5s ease; box-shadow: 0 0 8px {color}55;'></div>
-          </div>
-          <div style='font-size:0.73rem; color:#8A8AB0; margin-top:4px; font-family:DM Sans;'>
-            {row['pct_used']:.0f}% used · ₹{row['daily_burn']:,.0f}/day burn rate{proj_note}
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── Burn-rate chart ───────────────────────────────────────────────────────
-    st.markdown("<div class='section-header'>Burn Rate vs Budget (Monthly Projection)</div>", unsafe_allow_html=True)
-    valid = budget_status[(budget_status["budget"] > 0)]
-
-    fig_b = go.Figure()
-    fig_b.add_trace(go.Bar(
-        name="Spent", x=valid["category"], y=valid["spent"],
-        marker_color="#6C63FF", opacity=0.9,
-    ))
-    fig_b.add_trace(go.Bar(
-        name="Projected EOM", x=valid["category"], y=valid["projected_eom"],
-        marker_color="#FF9F43", opacity=0.6,
-    ))
-    fig_b.add_trace(go.Scatter(
-        name="Budget Limit", x=valid["category"], y=valid["budget"],
-        mode="markers", marker=dict(symbol="line-ew", size=18, color="#FF6B6B",
-                                    line=dict(width=2, color="#FF6B6B")),
-    ))
-    fig_b.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#E0E0E0"), barmode="overlay",
-        xaxis=dict(showgrid=False, tickangle=-25),
-        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", title="₹"),
-        legend=dict(orientation="h", y=1.1),
-        margin=dict(l=20, r=20, t=40, b=80),
-        height=380,
+    # ── Category progress bars ────────────────────────────────────────────────
+    view_mode = st.radio(
+        "Display as",
+        ["Progress bars", "Gauge cards"],
+        horizontal=True,
+        label_visibility="collapsed",
     )
-    st.plotly_chart(fig_b, use_container_width=True)
 
+    if view_mode == "Progress bars":
+        for _, row in budget_status.iterrows():
+            if row["monthly_budget"] == 0 and row["spent"] == 0:
+                continue
+            pct   = min(row["pct_used"], 100)
+            color = row["color"]
+            per   = row["budget_period"].lower()
+            proj_text = f" · 🔺 Projected ₹{row['projected_eom']:,.0f}" if row["will_breach"] and row["days_remaining"] > 0 else ""
 
+            # Use st.columns to avoid HTML nesting issues
+            left_col, right_col = st.columns([3, 1])
+            with left_col:
+                st.markdown(f"**{row['category']}**")
+            with right_col:
+                st.markdown(
+                    f"<div style='text-align:right; font-size:0.85rem; color:{color};'>"
+                    f"₹{row['spent']:,.0f} / ₹{row['monthly_budget']:,.0f}"
+                    f"&nbsp;&nbsp;<span style='background:#f0f0f0; padding:2px 8px; "
+                    f"border-radius:99px; font-size:0.72rem;'>{row['status']}</span></div>",
+                    unsafe_allow_html=True,
+                )
+
+            # Progress bar
+            st.markdown(f"""
+            <div style='background:#f7f5f0; border-radius:99px; height:7px;
+                        margin-bottom:4px; overflow:hidden;'>
+                <div style='width:{pct}%; height:7px; background:{color}; border-radius:99px;'></div>
+            </div>
+            <div style='font-size:0.72rem; color:#6c675f; margin-bottom:16px;'>
+                {row['pct_used']:.0f}% used &nbsp;·&nbsp;
+                Budget ₹{row['budget_amount']:,.0f}/{per} &nbsp;·&nbsp;
+                ₹{row['daily_burn']:,.0f}/day{proj_text}
+            </div>
+            """, unsafe_allow_html=True)
+
+    else:
+        # Gauge cards — 3 per row using st.columns (no nested HTML)
+        rows_data = budget_status.to_dict("records")
+        for i in range(0, len(rows_data), 3):
+            chunk = rows_data[i:i+3]
+            cols  = st.columns(3)
+            for j, row in enumerate(chunk):
+                color = row["color"]
+                pct   = min(row["pct_used"], 100)
+                r, cx, cy = 36, 44, 44
+                circ  = 2 * 3.14159 * r
+                dash  = circ * (pct / 100)
+                gap   = circ - dash
+                per   = row["budget_period"].lower()
+
+                with cols[j]:
+                    st.markdown(f"""
+                    <div style='background:#ffffff; border:1px solid #ede8e0;
+                                border-radius:12px; padding:16px;
+                                text-align:center; margin-bottom:12px;'>
+                        <svg width="88" height="88" viewBox="0 0 88 88">
+                            <circle cx="{cx}" cy="{cy}" r="{r}"
+                                fill="none" stroke="#f7f5f0" stroke-width="8"/>
+                            <circle cx="{cx}" cy="{cy}" r="{r}"
+                                fill="none" stroke="{color}" stroke-width="8"
+                                stroke-dasharray="{dash:.1f} {gap:.1f}"
+                                stroke-linecap="round"
+                                transform="rotate(-90 {cx} {cy})"/>
+                            <text x="{cx}" y="{cy+5}" text-anchor="middle"
+                                font-family="DM Sans" font-size="13"
+                                font-weight="700" fill="{color}">{pct:.0f}%</text>
+                        </svg>
+                        <div style='font-family:"DM Sans",sans-serif; font-weight:600;
+                                    font-size:0.85rem; color:#151515; margin-top:4px;'>
+                            {row["category"]}
+                        </div>
+                        <div style='font-size:0.75rem; color:#6c675f; margin-top:2px;'>
+                            ₹{row["spent"]:,.0f} of ₹{row["monthly_budget"]:,.0f}
+                        </div>
+                        <div style='font-size:0.7rem; color:#8A8AB0; margin-top:2px;'>
+                            Budget ₹{row["budget_amount"]:,.0f}/{per}
+                        </div>
+                        <div style='font-size:0.72rem; font-weight:600; color:{color};
+                                    margin-top:4px;'>{row["status"]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Budget editor ─────────────────────────────────────────────────────────
+    with st.expander("Edit category budgets", expanded=False):
+        st.markdown(
+            "<small style='color:#6c675f;'>Set amount and period per category. "
+            "Leave at 0 to skip a category.</small>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        new_budgets = {}
+        for i in range(0, len(ALL_CATEGORIES), 2):
+            pair = ALL_CATEGORIES[i:i+2]
+            cols = st.columns(4)
+            for j, cat in enumerate(pair):
+                cur = st.session_state.budgets.get(
+                    cat, DEFAULT_BUDGETS.get(cat, {"amount": 0, "period": "Monthly"})
+                )
+                with cols[j * 2]:
+                    amt = st.number_input(
+                        cat,
+                        min_value=0,
+                        max_value=10_00_000,
+                        value=int(cur.get("amount", 0)),
+                        step=100,
+                        key=f"bamt_{cat}",
+                    )
+                with cols[j * 2 + 1]:
+                    per = st.selectbox(
+                        f"Period",
+                        ["Daily", "Weekly", "Monthly", "Yearly"],
+                        index=["Daily", "Weekly", "Monthly", "Yearly"].index(
+                            cur.get("period", "Monthly")
+                        ),
+                        key=f"bper_{cat}",
+                        label_visibility="collapsed",
+                    )
+                new_budgets[cat] = {"amount": float(amt), "period": per}
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Save category budgets", type="primary"):
+            st.session_state.budgets = new_budgets
+            st.success("Saved!")
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Burn rate chart ───────────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Spend vs Budget — Category Chart</div>", unsafe_allow_html=True)
+
+    valid = budget_status[budget_status["monthly_budget"] > 0]
+    if not valid.empty:
+        fig_b = go.Figure()
+        fig_b.add_trace(go.Bar(
+            name="Spent",
+            x=valid["category"], y=valid["spent"],
+            marker_color="#1769ff", opacity=0.9,
+        ))
+        fig_b.add_trace(go.Bar(
+            name="Projected month end",
+            x=valid["category"], y=valid["projected_eom"],
+            marker_color="#FF9F43", opacity=0.45,
+        ))
+        fig_b.add_trace(go.Scatter(
+            name="Budget limit",
+            x=valid["category"], y=valid["monthly_budget"],
+            mode="markers",
+            marker=dict(symbol="line-ew", size=20, color="#FF6B6B",
+                        line=dict(width=2, color="#FF6B6B")),
+        ))
+        fig_b.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#151515"), barmode="overlay",
+            xaxis=dict(showgrid=False, tickangle=-30, tickfont=dict(size=10)),
+            yaxis=dict(showgrid=True, gridcolor="#ede8e0", title="₹"),
+            legend=dict(orientation="h", y=1.12),
+            margin=dict(l=20, r=20, t=40, b=90), height=360,
+        )
+        st.plotly_chart(fig_b, use_container_width=True)
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: FORECAST  🔮
 # ══════════════════════════════════════════════════════════════════════════════
