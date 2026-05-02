@@ -291,8 +291,7 @@ with st.sidebar:
     except:
         pass
 
-    with st.expander("📂 Upload Data", expanded=True):
-        st.markdown("<div style='font-size:0.78rem; color:#8A8AB0; font-family:DM Sans; text-transform:uppercase; letter-spacing:0.08em;'>Upload Data</div>", unsafe_allow_html=True)
+with st.expander("📂 Upload your CSV statement", expanded=True):
 
         uploaded_file = st.file_uploader(
             "Upload CSV",
@@ -311,15 +310,58 @@ with st.sidebar:
 
         use_sample = st.checkbox("Use sample data", value=True)
 
-        st.markdown("""
-        <div style='font-size:0.75rem; color:#8A8AB0; font-family:DM Sans; line-height:1.6;'>
-        <b style='color:#6C63FF'>Supported formats:</b><br>
-        Google Pay · PhonePe<br>
-        Paytm · BHIM · Bank CSV<br><br>
-        <b style='color:#6C63FF'>Required columns:</b><br>
-        Date · Description · Amount
-        </div>
-        """, unsafe_allow_html=True)
+        with st.expander("📋 Supported formats & requirements", expanded=False):
+            st.markdown("""
+            <div style='font-family:"DM Sans",sans-serif; font-size:0.82rem; color:#151515; line-height:1.8;'>
+
+                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Supported apps</div>
+                <div style='color:#6c675f; margin-bottom:12px;'>
+                    GPay · PhonePe · Paytm · HDFC · ICICI · SBI · Axis · Kotak · most Indian bank exports
+                </div>
+
+                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Your CSV needs at least</div>
+                <div style='background:#f7f5f0; border-radius:8px; padding:10px 12px; margin-bottom:12px;'>
+                    <div style='display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ede8e0;'>
+                        <span style='color:#151515; font-weight:500;'>Date</span>
+                        <span style='color:#6c675f;'>01/03/2024 · 01 Mar 2024</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ede8e0;'>
+                        <span style='color:#151515; font-weight:500;'>Description</span>
+                        <span style='color:#6c675f;'>Zomato Order · Uber Ride</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; padding:4px 0;'>
+                        <span style='color:#151515; font-weight:500;'>Amount</span>
+                        <span style='color:#6c675f;'>450 · ₹450 · -450</span>
+                    </div>
+                </div>
+
+                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Boosts accuracy</div>
+                <div style='color:#6c675f; margin-bottom:12px;'>
+                    Type column <span style='color:#151515;'>(Debit/Credit)</span> · 
+                    UPI ID <span style='color:#151515;'>(zomato@icici)</span> · 
+                    Balance column
+                </div>
+
+                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Won't work with</div>
+                <div style='color:#6c675f; margin-bottom:12px;'>
+                    Password protected files · Excel .xlsx
+                    <span style='color:#151515;'>(export as CSV first)</span>
+                </div>
+
+                <div style='background:#f0f4ff; border-left:3px solid #1769ff; border-radius:4px;
+                            padding:8px 12px; font-size:0.78rem; color:#6c675f; margin-bottom:12px;'>
+                    🔜 <span style='color:#151515; font-weight:500;'>Coming soon:</span>
+                    PhonePe PDF statements will be supported directly.
+                </div>
+
+                <div style='background:#fff8f0; border-left:3px solid #FF9F43; border-radius:4px;
+                            padding:8px 12px; font-size:0.78rem; color:#6c675f;'>
+                    💡 All positive amounts with no Type column? Everything gets treated as Debit.
+                    Make sure your export includes a <span style='color:#151515;'>Type or Dr/Cr column.</span>
+                </div>
+
+            </div>
+            """, unsafe_allow_html=True)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
