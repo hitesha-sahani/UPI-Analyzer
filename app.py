@@ -256,113 +256,6 @@ body {
 }
 </style>
 """, unsafe_allow_html=True)
-# ──────────────────────────────────────────────────────────────────────────────
-# SIDEBAR
-# ──────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown(f"""
-    <div style='display:flex; align-items:center; gap:12px; padding:16px 0 10px;'>
-        <img src='data:image/png;base64,{logo_b64}' width='48' style='border-radius:8px;'/>
-        <div>
-            <div style='font-family:"DM Sans",sans-serif; font-weight:700; font-size:1.05rem; color:#151515;'>ArthaLab</div>
-            <div style='font-size:0.70rem; color:#1769ff; letter-spacing:0.1em; text-transform:uppercase;'>Money OS</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.divider()
-
-    page = st.radio(
-        "Navigate",
-        [
-            "Dashboard", "Learn", "Leaks", "Transactions", "AI Coach",
-        ],
-        label_visibility="collapsed",
-    )
-
-    st.divider()
-
-    try:
-        if 'df' in locals() and df is not None:
-            stats_sidebar = get_summary_stats(df)
-            st.markdown("### 📈 Quick Stats")
-            st.metric("₹ Spent", f"₹{stats_sidebar['total_spent']:,.0f}")
-            st.metric("Txns", f"{stats_sidebar['total_transactions']}")
-    except:
-        pass
-
-with st.expander("📂 Upload your CSV statement", expanded=True):
-
-        uploaded_file = st.file_uploader(
-            "Upload CSV",
-            type=["csv"],
-            help="Supports GPay, PhonePe, Paytm, BHIM, or any bank CSV export",
-            label_visibility="collapsed",
-        )
-
-        extra_files = st.file_uploader(
-            "Add more accounts (optional)",
-            type=["csv"],
-            accept_multiple_files=True,
-            help="Upload CSVs from other UPI apps to merge and deduplicate",
-            label_visibility="collapsed",
-        )
-
-        use_sample = st.checkbox("Use sample data", value=True)
-
-        with st.expander("📋 Supported formats & requirements", expanded=False):
-            st.markdown("""
-            <div style='font-family:"DM Sans",sans-serif; font-size:0.82rem; color:#151515; line-height:1.8;'>
-
-                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Supported apps</div>
-                <div style='color:#6c675f; margin-bottom:12px;'>
-                    GPay · PhonePe · Paytm · HDFC · ICICI · SBI · Axis · Kotak · most Indian bank exports
-                </div>
-
-                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Your CSV needs at least</div>
-                <div style='background:#f7f5f0; border-radius:8px; padding:10px 12px; margin-bottom:12px;'>
-                    <div style='display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ede8e0;'>
-                        <span style='color:#151515; font-weight:500;'>Date</span>
-                        <span style='color:#6c675f;'>01/03/2024 · 01 Mar 2024</span>
-                    </div>
-                    <div style='display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ede8e0;'>
-                        <span style='color:#151515; font-weight:500;'>Description</span>
-                        <span style='color:#6c675f;'>Zomato Order · Uber Ride</span>
-                    </div>
-                    <div style='display:flex; justify-content:space-between; padding:4px 0;'>
-                        <span style='color:#151515; font-weight:500;'>Amount</span>
-                        <span style='color:#6c675f;'>450 · ₹450 · -450</span>
-                    </div>
-                </div>
-
-                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Boosts accuracy</div>
-                <div style='color:#6c675f; margin-bottom:12px;'>
-                    Type column <span style='color:#151515;'>(Debit/Credit)</span> · 
-                    UPI ID <span style='color:#151515;'>(zomato@icici)</span> · 
-                    Balance column
-                </div>
-
-                <div style='font-weight:600; color:#1769ff; margin-bottom:6px;'>✦ Won't work with</div>
-                <div style='color:#6c675f; margin-bottom:12px;'>
-                    Password protected files · Excel .xlsx
-                    <span style='color:#151515;'>(export as CSV first)</span>
-                </div>
-
-                <div style='background:#f0f4ff; border-left:3px solid #1769ff; border-radius:4px;
-                            padding:8px 12px; font-size:0.78rem; color:#6c675f; margin-bottom:12px;'>
-                    🔜 <span style='color:#151515; font-weight:500;'>Coming soon:</span>
-                    PhonePe PDF statements will be supported directly.
-                </div>
-
-                <div style='background:#fff8f0; border-left:3px solid #FF9F43; border-radius:4px;
-                            padding:8px 12px; font-size:0.78rem; color:#6c675f;'>
-                    💡 All positive amounts with no Type column? Everything gets treated as Debit.
-                    Make sure your export includes a <span style='color:#151515;'>Type or Dr/Cr column.</span>
-                </div>
-
-            </div>
-            """, unsafe_allow_html=True)
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # DATA LOADING  (cached)
@@ -407,21 +300,239 @@ def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
     return df, merged   # return both: clean processed + raw merged with dup flags
 
 
-# Load data
-extra_bytes = tuple(f.read() for f in extra_files) if extra_files else ()
+# ──────────────────────────────────────────────────────────────────────────────
+# LANDING PAGE + DATA LOADING
+# ──────────────────────────────────────────────────────────────────────────────
 
-if uploaded_file:
-    result = load_and_process(file_bytes=uploaded_file.read(),
-                              extra_bytes_list=extra_bytes)
-    data_source = f"📁 {uploaded_file.name}"
-    if extra_files:
-        data_source += f" + {len(extra_files)} more"
-elif use_sample:
+# initialize session state
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
+
+if "uploaded_file_bytes" not in st.session_state:
+    st.session_state.uploaded_file_bytes = None
+
+if "extra_bytes" not in st.session_state:
+    st.session_state.extra_bytes = ()
+
+if "use_sample_data" not in st.session_state:
+    st.session_state.use_sample_data = False
+
+if "data_source" not in st.session_state:
+    st.session_state.data_source = "No data"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LANDING PAGE
+# ──────────────────────────────────────────────────────────────────────────────
+if not st.session_state.data_loaded:
+    # landing page styling
+    st.markdown("""
+<style>
+section[data-testid="stSidebar"] {
+    display: none;
+}
+
+/* override your global dark dashboard theme */
+.stApp {
+    background: #f7f5f0 !important;
+}
+
+.main {
+    background: #f7f5f0 !important;
+}
+
+.block-container {
+    max-width: 900px;
+    padding-top: 2rem;
+    background: #f7f5f0 !important;
+}
+
+/* fix inherited dark text */
+html, body, p, span, div, h1, h2, h3, h4, h5, h6, label {
+    color: #151515 !important;
+}
+
+/* cleaner uploader */
+[data-testid="stFileUploader"] {
+    background: white;
+    border-radius: 16px;
+    padding: 10px;
+    border: 1px solid #ede8e0;
+}
+
+[data-testid="stFileUploaderDropzone"] {
+    background: white !important;
+    border: 2px dashed #ded9cf !important;
+}
+
+/* checkbox cleanup */
+[data-testid="stCheckbox"] {
+    background: transparent !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+    # logo/header
+    st.markdown(f"""
+    <div style='display:flex; align-items:center; gap:14px; margin-bottom:20px;'>
+        <img src='data:image/png;base64,{logo_b64}' width='50'/>
+        <div>
+            <div style='font-size:1.2rem;font-weight:700;'>ArthaLab</div>
+            <div style='font-size:0.8rem;color:#1769ff;'>Money OS</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+<div style='margin-top:30px; margin-bottom:35px;'>
+
+<div style='font-size:3rem;
+            font-weight:800;
+            color:#151515;
+            line-height:1.15;
+            margin-bottom:14px;'>
+Your money has a story.
+</div>
+
+<div style='font-size:1.35rem;
+            font-weight:600;
+            color:#1769ff;
+            margin-bottom:18px;'>
+Read where your money goes — and why.
+</div>
+
+<div style='font-size:1rem;
+            color:#6c675f;
+            max-width:620px;
+            line-height:1.7;'>
+ArthaLab transforms messy bank/UPI statements into clear financial insights.
+Track spending leaks, subscriptions, lifestyle drift, savings patterns,
+and understand your financial behaviour — without spreadsheets.
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+    st.markdown("""
+<div style='display:flex; flex-wrap:wrap; gap:12px; margin-bottom:35px;'>
+
+<div style='background:white;
+            border:1px solid #e5ddd0;
+            padding:12px 18px;
+            border-radius:999px;
+            font-size:0.95rem;
+            font-weight:600;'>
+💸 Spending Leak Detection
+</div>
+
+<div style='background:white;
+            border:1px solid #e5ddd0;
+            padding:12px 18px;
+            border-radius:999px;
+            font-size:0.95rem;
+            font-weight:600;'>
+📊 Student Budgeting
+</div>
+
+<div style='background:white;
+            border:1px solid #e5ddd0;
+            padding:12px 18px;
+            border-radius:999px;
+            font-size:0.95rem;
+            font-weight:600;'>
+🧠 Financial Education
+</div>
+
+<div style='background:white;
+            border:1px solid #e5ddd0;
+            padding:12px 18px;
+            border-radius:999px;
+            font-size:0.95rem;
+            font-weight:600;'>
+⚠️ Subscription Tracking
+</div>
+
+<div style='background:white;
+            border:1px solid #e5ddd0;
+            padding:12px 18px;
+            border-radius:999px;
+            font-size:0.95rem;
+            font-weight:600;'>
+📈 Monthly Trends
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        uploaded_file = st.file_uploader(
+            "Upload primary CSV",
+            type=["csv"]
+        )
+
+        extra_files = st.file_uploader(
+            "Add more accounts (optional)",
+            type=["csv"],
+            accept_multiple_files=True
+        )
+
+    with col2:
+        st.markdown("""
+        ### Try Demo Data
+
+        Explore sample transaction history with:
+
+        - subscriptions  
+        - anomalies  
+        - leaks  
+        - spending patterns  
+        """)
+
+        use_sample = st.button("Use Demo Data")
+
+    # nothing selected
+    if not uploaded_file and not use_sample:
+        st.stop()
+
+    # save uploaded files
+    extra_bytes = tuple(f.read() for f in extra_files) if extra_files else ()
+
+    if uploaded_file:
+        st.session_state.uploaded_file_bytes = uploaded_file.read()
+        st.session_state.extra_bytes = extra_bytes
+        st.session_state.data_source = f"📁 {uploaded_file.name}"
+        st.session_state.use_sample_data = False
+
+    if use_sample:
+        st.session_state.use_sample_data = True
+        st.session_state.uploaded_file_bytes = None
+        st.session_state.data_source = "🗂️ Sample Data (Demo)"
+
+    st.session_state.data_loaded = True
+    st.rerun()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PROCESS DATA
+# ──────────────────────────────────────────────────────────────────────────────
+
+if st.session_state.uploaded_file_bytes:
+    result = load_and_process(
+        file_bytes=st.session_state.uploaded_file_bytes,
+        extra_bytes_list=st.session_state.extra_bytes
+    )
+
+elif st.session_state.use_sample_data:
     result = load_and_process(use_sample=True)
-    data_source = "🗂️ Sample Data (3 months)"
+
 else:
     result = None
-    data_source = "No data"
+
+
+data_source = st.session_state.data_source
 
 if result is None:
     df = None
@@ -429,33 +540,64 @@ if result is None:
 else:
     df, merged_raw = result
 
+
 if df is None:
-    # Landing screen
-    st.markdown("""
-    <div class='hero'>
-        <h1>UPI Spend Analyzer</h1>
-        <p>Upload your UPI transaction CSV to unlock spending insights, detect anomalies, and understand your financial habits.</p>
+    st.stop()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SIDEBAR (move your sidebar block here)
+# ──────────────────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(f"""
+    <div style='display:flex; align-items:center; gap:12px; padding:16px 0 10px;'>
+        <img src='data:image/png;base64,{logo_b64}' width='48'/>
+        <div>
+            <div style='font-weight:700;'>ArthaLab</div>
+            <div style='font-size:0.7rem;color:#1769ff;'>Money OS</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    for col, icon, title, desc in [
-        (col1, "🏷️", "Auto-Categorize", "Automatically sorts transactions into 12 spending categories"),
-        (col2, "🔍", "Flag Anomalies", "Detects unusual spends using Z-score & IQR analysis"),
-        (col3, "🧠", "Behavioral Insights", "Finds patterns, subscriptions, and gives actionable nudges"),
-    ]:
-        with col:
-            st.markdown(f"""
-            <div class='kpi-card' style='text-align:center;'>
-                <div style='font-size:2rem; margin-bottom:10px;'>{icon}</div>
-                <div style='font-family:DM Sans; font-weight:600; color:#E0E0F0; margin-bottom:6px;'>{title}</div>
-                <div style='font-size:0.82rem; color:#8A8AB0; font-family:DM Sans;'>{desc}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    st.divider()
 
-    st.info("👈 Upload a CSV or check **Use sample data** in the sidebar to explore a demo.", icon="💡")
-    st.stop()
+    page = st.radio(
+        "Navigate",
+        [
+            "Dashboard",
+            "Learn",
+            "Leaks",
+            "Transactions",
+            "AI Coach"
+        ],
+        label_visibility="collapsed"
+    )
 
+    st.divider()
+
+    try:
+        stats_sidebar = get_summary_stats(df)
+
+        st.markdown("### 📈 Quick Stats")
+        st.metric("₹ Spent", f"₹{stats_sidebar['total_spent']:,.0f}")
+        st.metric("Transactions", stats_sidebar["total_transactions"])
+
+        # optional reset button
+        if st.button("🔄 Upload New File"):
+            for key in [
+                "data_loaded",
+                "uploaded_file_bytes",
+                "extra_bytes",
+                "use_sample_data",
+                "data_source"
+            ]:
+                if key in st.session_state:
+                    del st.session_state[key]
+
+            st.rerun()
+
+    except:
+        pass
 
 # ──────────────────────────────────────────────────────────────────────────────
 # COMPUTED DATA
