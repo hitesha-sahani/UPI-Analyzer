@@ -1,7 +1,5 @@
-
 import pandas as pd
 import numpy as np
-from datetime import datetime
 import re
 import io
 
@@ -14,14 +12,16 @@ COLUMN_MAPS = {
         "upi_id": ["upi id", "vpa", "upi ref"],
         "balance": ["balance", "closing balance", "available balance"],
     },
+
     "phonepe": {
         "date": ["date", "txn date", "transaction date"],
         "description": ["transaction details", "description", "details"],
-        "amount": ["amount (inr)", "amount", "debit amount", "credit amount"],
+        "amount": ["amount (inr)", "amount"],
         "type": ["type", "debit/credit", "cr/dr"],
         "upi_id": ["upi transaction id", "upi id", "reference id"],
         "balance": ["balance"],
     },
+
     "paytm": {
         "date": ["date", "transaction date"],
         "description": ["details", "comment", "description", "remark"],
@@ -30,199 +30,334 @@ COLUMN_MAPS = {
         "upi_id": ["order id", "txn id", "upi id"],
         "balance": ["wallet balance", "balance"],
     },
+
+    # Added bank compatibility
     "generic": {
-        "date": ["date", "txn date", "value date", "posting date"],
-        "description": ["description", "narration", "particulars", "details", "remarks"],
-        "amount": ["amount", "debit amount", "credit amount", "transaction amount"],
-        "type": ["type", "dr/cr", "debit/credit", "txn type"],
-        "upi_id": ["upi id", "ref no", "reference", "upi ref", "chq/ref no"],
-        "balance": ["balance", "available balance", "closing balance"],
-    },
+        "date": [
+            "date",
+            "txn date",
+            "transaction date",
+            "value date",
+            "posting date"
+        ],
+
+        "description": [
+            "description",
+            "narration",
+            "particulars",
+            "details",
+            "remarks"
+        ],
+
+        "amount": [
+            "amount",
+            "debit amount",
+            "credit amount",
+            "transaction amount",
+            "dr amount",
+            "cr amount"
+        ],
+
+        "type": [
+            "type",
+            "dr/cr",
+            "debit/credit",
+            "txn type"
+        ],
+
+        "upi_id": [
+            "upi id",
+            "ref no",
+            "reference",
+            "upi ref",
+            "chq/ref no",
+            "txn no."
+        ],
+
+        "balance": [
+            "balance",
+            "available balance",
+            "closing balance"
+        ],
+    }
 }
 
+
 DATE_FORMATS = [
-    "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%m/%d/%Y",
-    "%d %b %Y", "%d %B %Y", "%b %d, %Y", "%B %d, %Y",
-    "%d/%m/%y", "%d-%m-%y", "%Y/%m/%d",
+    "%d/%m/%Y",
+    "%d-%m-%Y",
+    "%Y-%m-%d",
+    "%m/%d/%Y",
+    "%d %b %Y",
+    "%d %B %Y",
+    "%b %d, %Y",
+    "%B %d, %Y",
+    "%d/%m/%y",
+    "%d-%m-%y"
 ]
 
 
 def _try_parse_date(val):
-    """Try multiple date formats and return a datetime or NaT."""
     val = str(val).strip()
+
     for fmt in DATE_FORMATS:
         try:
             return pd.to_datetime(val, format=fmt)
-        except Exception:
+        except:
             pass
+
     try:
-        return pd.to_datetime(val, infer_datetime_format=True)
-    except Exception:
+        return pd.to_datetime(val, errors="coerce")
+    except:
         return pd.NaT
 
 
-def _normalize_columns(df: pd.DataFrame) -> dict:
-    """
-    Detect which columns in df correspond to standard fields.
-    Returns a mapping {standard_field: actual_col_name}.
-    """
+def _find_col(df, names):
+    lower_cols = {c.lower().strip(): c for c in df.columns}
+
+    for name in names:
+        if name in lower_cols:
+            return lower_cols[name]
+
+    return None
+
+
+def _normalize_columns(df):
     lower_cols = {c.lower().strip(): c for c in df.columns}
     mapping = {}
 
-    for source, col_map in COLUMN_MAPS.items():
+    for _, col_map in COLUMN_MAPS.items():
         score = 0
         candidate = {}
+
         for field, aliases in col_map.items():
             for alias in aliases:
                 if alias in lower_cols:
                     candidate[field] = lower_cols[alias]
                     score += 1
                     break
+
         if score >= 2 and len(candidate) > len(mapping):
             mapping = candidate
 
-    # Fallback: try to infer by position for very simple CSVs
-    if "date" not in mapping and len(df.columns) >= 3:
-        mapping["date"] = df.columns[0]
-    if "description" not in mapping and len(df.columns) >= 3:
-        mapping["description"] = df.columns[1]
-    if "amount" not in mapping and len(df.columns) >= 3:
-        mapping["amount"] = df.columns[2]
+    # smarter fallback
+    if "date" not in mapping:
+        mapping["date"] = _find_col(
+            df,
+            ["txn date", "transaction date", "date", "value date"]
+        )
+
+    if "description" not in mapping:
+        mapping["description"] = _find_col(
+            df,
+            ["description", "details", "narration"]
+        )
+
+    if "amount" not in mapping:
+        mapping["amount"] = _find_col(
+            df,
+            ["dr amount", "cr amount", "amount"]
+        )
 
     return mapping
 
 
-def _money_to_number(series: pd.Series) -> pd.Series:
-    """Convert money-like strings to numbers while preserving signs."""
+def _money_to_number(series):
     cleaned = (
         series.astype(str)
         .str.replace(",", "", regex=False)
         .str.replace("₹", "", regex=False)
-        .str.replace("â‚¹", "", regex=False)
+        .str.replace("Cr.", "", regex=False)
+        .str.replace("Dr.", "", regex=False)
         .str.strip()
     )
+
     return pd.to_numeric(cleaned, errors="coerce")
 
 
-def _find_col(df: pd.DataFrame, names: list) -> str:
-    lower_cols = {c.lower().strip(): c for c in df.columns}
-    for name in names:
-        if name in lower_cols:
-            return lower_cols[name]
-    return ""
+def _detect_type(raw_df):
+    # FIRST priority → explicit Type column
+    type_col = _find_col(raw_df, [
+        "type",
+        "transaction type",
+        "dr/cr",
+        "debit/credit",
+        "txn type"
+    ])
 
+    if type_col:
+        raw_type = raw_df[type_col].astype(str).str.lower().str.strip()
 
-def _has_explicit_time(val) -> bool:
-    text = str(val).strip()
-    return bool(re.search(r"\b\d{1,2}:\d{2}(?::\d{2})?\b", text))
-
-
-def _detect_debit_credit(df: pd.DataFrame, amount_col: str, type_col: str = None) -> pd.Series:
-    """
-    Determine transaction type (Debit / Credit) from the data.
-    Handles: separate type col, negative values = debit, keyword sniff.
-    """
-    if type_col and type_col in df.columns:
-        raw = df[type_col].astype(str).str.lower().str.strip()
-        result = raw.map(
+        return raw_type.apply(
             lambda x: "Credit"
-            if any(k in x for k in ["cr", "credit", "received", "income"])
+            if any(word in x for word in ["credit", "cr"])
             else "Debit"
         )
-        return result
 
-    debit_col = _find_col(df, ["debit amount", "debit", "withdrawal", "paid"])
-    credit_col = _find_col(df, ["credit amount", "credit", "deposit", "received"])
+    # SECOND priority → separate debit/credit columns
+    debit_col = _find_col(raw_df, [
+        "debit amount",
+        "dr amount",
+        "debit"
+    ])
+
+    credit_col = _find_col(raw_df, [
+        "credit amount",
+        "cr amount",
+        "credit"
+    ])
+
     if debit_col or credit_col:
-        debit_vals = _money_to_number(df[debit_col]) if debit_col else pd.Series(0, index=df.index)
-        credit_vals = _money_to_number(df[credit_col]) if credit_col else pd.Series(0, index=df.index)
-        return pd.Series(
-            np.where(credit_vals.fillna(0).abs() > debit_vals.fillna(0).abs(), "Credit", "Debit"),
-            index=df.index,
+        debit_vals = (
+            _money_to_number(raw_df[debit_col])
+            if debit_col else pd.Series(0, index=raw_df.index)
         )
 
-    # Fall back to sign of amount
-    nums = _money_to_number(df[amount_col])
-    has_negative = (nums.dropna() < 0).any()
-    if has_negative:
-        return nums.apply(lambda x: "Credit" if (not pd.isna(x) and x > 0) else "Debit")
+        credit_vals = (
+            _money_to_number(raw_df[credit_col])
+            if credit_col else pd.Series(0, index=raw_df.index)
+        )
 
-    # A single positive amount column without a type is more often an expense export.
-    return pd.Series("Debit", index=df.index)
+        return pd.Series(
+            np.where(
+                credit_vals.fillna(0) > 0,
+                "Credit",
+                "Debit"
+            ),
+            index=raw_df.index
+        )
 
+    # THIRD priority → amount sign
+    amount_col = _find_col(raw_df, ["amount"])
 
-def parse_csv(file_obj) -> pd.DataFrame:
-    """
-    Main entry point. Accepts a file-like object or file path.
-    Returns a clean, normalized DataFrame.
-    """
-    # ── Read raw CSV ───────────────────────────────────────────────────────────
+    if amount_col:
+        amounts = _money_to_number(raw_df[amount_col])
+
+        if (amounts < 0).any():
+            return amounts.apply(
+                lambda x: "Debit" if x < 0 else "Credit"
+            )
+
+    # LAST fallback → description keywords
+    desc_col = _find_col(raw_df, [
+        "description",
+        "details",
+        "transaction details"
+    ])
+
+    if desc_col:
+        descriptions = raw_df[desc_col].astype(str).str.lower()
+
+        return descriptions.apply(
+            lambda x: "Credit"
+            if any(word in x for word in [
+                "salary",
+                "credited",
+                "refund",
+                "cashback",
+                "received"
+            ])
+            else "Debit"
+        )
+
+    return pd.Series("Debit", index=raw_df.index)
+
+def parse_csv(file_obj):
+
     if isinstance(file_obj, (str, bytes)):
-        raw_df = pd.read_csv(file_obj, encoding="utf-8", on_bad_lines="skip")
+        raw_df = pd.read_csv(
+            file_obj,
+            encoding="utf-8",
+            on_bad_lines="skip"
+        )
     else:
         content = file_obj.read()
-        if isinstance(content, bytes):
-            content = content.decode("utf-8", errors="replace")
-        raw_df = pd.read_csv(io.StringIO(content), on_bad_lines="skip")
 
+        if isinstance(content, bytes):
+            content = content.decode(
+                "utf-8",
+                errors="replace"
+            )
+
+        raw_df = pd.read_csv(
+            io.StringIO(content),
+            on_bad_lines="skip"
+        )
+
+    # clean weird bank exports
     raw_df.columns = raw_df.columns.str.strip()
+    raw_df = raw_df.loc[:, ~raw_df.columns.str.contains("^Unnamed")]
+    raw_df = raw_df.dropna(axis=1, how="all")
     raw_df = raw_df.dropna(how="all")
 
-    # ── Detect column mapping ──────────────────────────────────────────────────
     col_map = _normalize_columns(raw_df)
 
-    # ── Build standardized DataFrame ──────────────────────────────────────────
     df = pd.DataFrame()
 
-    # Date
-    date_col = col_map.get("date", raw_df.columns[0])
+    # date
+    date_col = col_map.get("date")
     df["date"] = raw_df[date_col].apply(_try_parse_date)
-    df["has_time"] = raw_df[date_col].apply(_has_explicit_time)
 
-    # Description
-    desc_col = col_map.get("description", None)
-    if desc_col:
-        df["description"] = raw_df[desc_col].astype(str).str.strip()
+    # description
+    desc_col = col_map.get("description")
+    df["description"] = (
+        raw_df[desc_col].astype(str).str.strip()
+        if desc_col else "Unknown"
+    )
+
+    # amount
+    debit_col = _find_col(raw_df, ["debit amount", "dr amount"])
+    credit_col = _find_col(raw_df, ["credit amount", "cr amount"])
+
+    if debit_col or credit_col:
+        debit_vals = (
+            _money_to_number(raw_df[debit_col])
+            if debit_col else pd.Series(0, index=raw_df.index)
+        )
+
+        credit_vals = (
+            _money_to_number(raw_df[credit_col])
+            if credit_col else pd.Series(0, index=raw_df.index)
+        )
+
+        df["amount"] = (
+            debit_vals.fillna(0).abs() +
+            credit_vals.fillna(0).abs()
+        )
+
     else:
-        df["description"] = "Unknown"
+        amt_col = col_map.get("amount")
 
-    # Amount
-    amt_col = col_map.get("amount", None)
-    if amt_col:
-        amt_str = raw_df[amt_col].astype(str).str.replace(",", "").str.replace("₹", "").str.strip()
-        df["amount"] = pd.to_numeric(amt_str, errors="coerce").abs()
+        if amt_col:
+            df["amount"] = _money_to_number(raw_df[amt_col]).abs()
+        else:
+            df["amount"] = np.nan
+
+    # type
+    df["type"] = _detect_type(raw_df)
+
+    # upi id
+    upi_col = col_map.get("upi_id")
+
+    if upi_col:
+        df["upi_id"] = raw_df[upi_col].astype(str)
     else:
-        df["amount"] = np.nan
+        df["upi_id"] = "N/A"
 
-    debit_col = _find_col(raw_df, ["debit amount", "debit", "withdrawal", "paid"])
-    credit_col = _find_col(raw_df, ["credit amount", "credit", "deposit", "received"])
-    if amt_col and (debit_col or credit_col):
-        debit_vals = _money_to_number(raw_df[debit_col]) if debit_col else pd.Series(0, index=raw_df.index)
-        credit_vals = _money_to_number(raw_df[credit_col]) if credit_col else pd.Series(0, index=raw_df.index)
-        df["amount"] = debit_vals.fillna(0).abs() + credit_vals.fillna(0).abs()
+    # balance
+    bal_col = col_map.get("balance")
 
-    # Type
-    type_col = col_map.get("type", None)
-    df["type"] = _detect_debit_credit(raw_df, amt_col or raw_df.columns[2], type_col)
-
-    # UPI ID
-    upi_col = col_map.get("upi_id", None)
-    df["upi_id"] = raw_df[upi_col].astype(str).str.strip() if upi_col else "N/A"
-
-    # Balance
-    bal_col = col_map.get("balance", None)
     if bal_col:
-        bal_str = raw_df[bal_col].astype(str).str.replace(",", "").str.replace("₹", "").str.strip()
-        df["balance"] = pd.to_numeric(bal_str, errors="coerce")
+        df["balance"] = _money_to_number(raw_df[bal_col])
     else:
         df["balance"] = np.nan
 
-    # ── Clean ──────────────────────────────────────────────────────────────────
+    # clean
     df = df.dropna(subset=["date", "amount"])
     df = df[df["amount"] > 0]
+
     df = df.sort_values("date").reset_index(drop=True)
 
- 
     df["month"] = df["date"].dt.to_period("M").astype(str)
     df["day_of_week"] = df["date"].dt.day_name()
     df["hour"] = df["date"].dt.hour.fillna(12).astype(int)
@@ -231,8 +366,7 @@ def parse_csv(file_obj) -> pd.DataFrame:
     return df
 
 
-def get_summary_stats(df: pd.DataFrame) -> dict:
-    """Return high-level summary statistics from parsed DataFrame."""
+def get_summary_stats(df):
     debits = df[df["type"] == "Debit"]
     credits = df[df["type"] == "Credit"]
 
