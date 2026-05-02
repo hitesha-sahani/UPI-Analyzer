@@ -35,6 +35,7 @@ from modules.ai_advisor import (build_financial_context, get_api_client,
                                   STARTER_QUESTIONS, ANTHROPIC_AVAILABLE, GROQ_AVAILABLE)
 from modules.benchmarks       import (compute_benchmarks, get_savings_benchmark,
                                       get_standout_categories)
+from modules.merchant_review_ui import render_merchant_review
 
 
 def _img_to_b64(path: str) -> str:
@@ -262,7 +263,7 @@ body {
 # ──────────────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
-                     extra_bytes_list: tuple = ()):
+                         extra_bytes_list: tuple = (), user_id: str = "user_1"):
     import io
     dfs, names = [], []
 
@@ -295,7 +296,7 @@ def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
     merged = deduplicate(merged)
     clean  = get_clean_df(merged)
 
-    df = categorize_transactions(clean)
+    df = categorize_transactions(clean, user_id=user_id)
     df = detect_anomalies(df)
     return df, merged   # return both: clean processed + raw merged with dup flags
 
@@ -307,6 +308,8 @@ def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
 # initialize session state
 if "data_loaded" not in st.session_state:
     st.session_state.data_loaded = False
+if "user_id" not in st.session_state:    
+    st.session_state.user_id = "user_1"
 
 if "uploaded_file_bytes" not in st.session_state:
     st.session_state.uploaded_file_bytes = None
@@ -522,11 +525,12 @@ and understand your financial behaviour — without spreadsheets.
 if st.session_state.uploaded_file_bytes:
     result = load_and_process(
         file_bytes=st.session_state.uploaded_file_bytes,
-        extra_bytes_list=st.session_state.extra_bytes
+        extra_bytes_list=st.session_state.extra_bytes,
+        user_id=st.session_state.user_id,
     )
 
 elif st.session_state.use_sample_data:
-    result = load_and_process(use_sample=True)
+    result = load_and_process(use_sample=True, user_id=st.session_state.user_id)
 
 else:
     result = None
@@ -569,6 +573,7 @@ with st.sidebar:
             "Leaks",
             "Transactions",
             "Budget",
+            "Merchants",
             "AI Coach"
         ],
         label_visibility="collapsed"
@@ -1464,6 +1469,16 @@ elif page == "📋 Transactions":
         mime="text/csv",
     )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: Merchants
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "Merchants":
+ 
+        render_merchant_review(
+            df,
+            user_id=st.session_state.user_id,
+            load_and_process_fn=load_and_process,   # clears cache on save
+        )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: BUDGET TRACKER  🎯

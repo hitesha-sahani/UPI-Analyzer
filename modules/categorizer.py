@@ -5,7 +5,7 @@ import re
 import os
 import pandas as pd
 from pathlib import Path
-
+from modules.user_overrides import get_override
 
 # ── Load category config ───────────────────────────────────────────────────────
 _CONFIG_PATH = Path(__file__).parent.parent / "config" / "categories.json"
@@ -51,17 +51,60 @@ def _clean_description(desc: str) -> str:
     return re.sub(r"\s+", " ", desc).strip()
 
 
-def _categorize_single(description: str, upi_id: str = "") -> str:
-    """Assign category to a single transaction."""
-    clean_desc = _clean_description(description)
+ 
+ 
+def _categorize_single(description: str, upi_id: str = "", user_id: str | None = None) -> str:
+    """
+    Priority:
+      1. user override keyed on upi_id  (e.g. "rahul@okaxis")
+      2. user override keyed on cleaned description
+      3. global keyword index
+      4. "Others"
+    """
+    if user_id:
+        # Try upi_id first — it's the most specific identifier
+        uid = str(upi_id).strip().lower()
+        if uid and "@" in uid:          # only real UPI handles, not txn ref numbers
+            override = get_override(user_id, uid)
+            if override:
+                return override
+ 
+        # Fall back to description-based override
+        override = get_override(user_id, description.strip().lower())
+        if override:
+            return override
+ 
+    # Global keyword index — unchanged
+    clean_desc  = _clean_description(description)
     search_text = clean_desc + " " + str(upi_id).lower()
-
+ 
     for keyword, category in _KW_INDEX:
         if keyword in search_text:
             return category
-
+ 
     return "Others"
-
+ 
+ 
+# ── REPLACE categorize_transactions ─────────────────────────────────────────
+ 
+def categorize_transactions(df, user_id: str | None = None):
+    """
+    user_id=None keeps full backward-compatibility.
+    """
+    df = df.copy()
+ 
+    df["category"] = df.apply(
+        lambda row: "Income" if row["type"] == "Credit" else _categorize_single(
+            row["description"],
+            row.get("upi_id", ""),
+            user_id,
+        ),
+        axis=1,
+    )
+ 
+    df["merchant"] = df["description"].apply(_extract_merchant)
+ 
+    return df
 
 def _extract_merchant(description: str) -> str:
     """
@@ -580,26 +623,6 @@ def _extract_merchant(description: str) -> str:
         return " ".join(parts[:3]).title()
 
     return desc[:30].title()
-
-
-def categorize_transactions(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add 'category' and 'merchant' columns to the DataFrame.
-    Only categorizes Debit transactions; Credits get 'Income'.
-    """
-    df = df.copy()
-
-    df["category"] = df.apply(
-        lambda row: "Income" if row["type"] == "Credit" else _categorize_single(
-            row["description"], row.get("upi_id", "")
-        ),
-        axis=1,
-    )
-
-    df["merchant"] = df["description"].apply(_extract_merchant)
-
-    return df
-
 
 def get_category_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
