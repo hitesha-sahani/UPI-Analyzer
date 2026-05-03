@@ -127,4 +127,4 @@ def render_csv_guide():
             "Minimum needed: **Date** + any **Amount** column. "
             "Everything else improves the analysis but won't break the upload.",
             icon="💡",
-        )
+        ) 
