@@ -327,6 +327,12 @@ if "use_sample_data" not in st.session_state:
 
 if "data_source" not in st.session_state:
     st.session_state.data_source = "No data"
+if "show_merchant_review" not in st.session_state:
+    st.session_state.show_merchant_review = False
+if "merchant_review_done" not in st.session_state:
+    st.session_state.merchant_review_done = False
+if "page_override" not in st.session_state:
+    st.session_state.page_override = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -482,6 +488,7 @@ if not st.session_state.data_loaded:
         st.session_state.data_source         = "🗂️ Sample Data (Demo)"
 
     st.session_state.data_loaded = True
+    st.session_state.show_merchant_review = True
     st.rerun()
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -531,19 +538,15 @@ with st.sidebar:
 
     st.divider()
 
-    page = st.radio(
-        "Navigate",
-        [
-            "Dashboard",
-            "Learn",
-            "Leaks",
-            "Transactions",
-            "Budget",
-            "Merchants",
-            "AI Coach"
-        ],
-        label_visibility="collapsed"
-    )
+    if st.session_state.get("page_override"):
+        page = st.session_state.page_override
+        st.session_state.page_override = None
+    else:
+        page = st.radio(
+            "Navigate",
+            ["Dashboard", "Learn", "Leaks", "Transactions", "Budget","Merchants","AI Coach"],
+            label_visibility="collapsed",
+        )
 
     st.divider()
 
@@ -880,7 +883,37 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+if st.session_state.get("show_merchant_review") and not st.session_state.get("merchant_review_done"):
 
+    @st.dialog("Before we dive in 👋")
+    def merchant_review_dialog():
+        st.markdown("""
+        <div style='font-family:"DM Sans",sans-serif;'>
+            <div style='font-size:1rem; font-weight:600; color:#151515; margin-bottom:8px;'>
+                Take 2 minutes for better insights
+            </div>
+            <div style='font-size:0.88rem; color:#6c675f; line-height:1.7; margin-bottom:20px;'>
+                ArthaLab auto-categorizes your transactions, but reviewing your
+                merchants helps us get it right — especially for local vendors,
+                transfers to family, and recurring payments.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✦ Review merchants", type="primary", use_container_width=True):
+                st.session_state.show_merchant_review = False
+                st.session_state.merchant_review_done = True
+                st.session_state.page_override = "Merchants"
+                st.rerun()
+        with col2:
+            if st.button("Skip for now", use_container_width=True):
+                st.session_state.show_merchant_review = False
+                st.session_state.merchant_review_done = True
+                st.rerun()
+
+    merchant_review_dialog()
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: DASHBOARD
 if page == "Dashboard":
@@ -1982,6 +2015,7 @@ elif page == "AI Coach":
         st.session_state.questions_asked = 0
     if "last_reset_date" not in st.session_state:
         st.session_state.last_reset_date = pd.Timestamp.now().date()
+    
 
     # Reset daily limit at midnight
     if st.session_state.last_reset_date != pd.Timestamp.now().date():
