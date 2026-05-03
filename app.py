@@ -234,6 +234,10 @@ div[data-testid="stPlotlyChart"] {
     color: #8A8AB0;
     margin: 0;
 }
+.full-width-guide [data-testid="stExpander"] {
+    width: 100% !important;
+    max-width: 100% !important;
+}
 
 /* Layout spacing */
 .block-container {
@@ -326,199 +330,159 @@ if "data_source" not in st.session_state:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# LANDING PAGE
-# ──────────────────────────────────────────────────────────────────────────────
 if not st.session_state.data_loaded:
-    # landing page styling
     st.markdown("""
-<style>
-section[data-testid="stSidebar"] {
-    display: none;
-}
-
-/* override your global dark dashboard theme */
-.stApp {
-    background: #f7f5f0 !important;
-}
-
-.main {
-    background: #f7f5f0 !important;
-}
-
-.block-container {
-    max-width: 900px;
-    padding-top: 2rem;
-    background: #f7f5f0 !important;
-}
-
-/* fix inherited dark text */
-html, body, p, span, div, h1, h2, h3, h4, h5, h6, label {
-    color: #151515 !important;
-}
-
-/* cleaner uploader */
-[data-testid="stFileUploader"] {
-    background: white;
-    border-radius: 16px;
-    padding: 10px;
-    border: 1px solid #ede8e0;
-}
-
-[data-testid="stFileUploaderDropzone"] {
-    background: white !important;
-    border: 2px dashed #ded9cf !important;
-}
-
-/* checkbox cleanup */
-[data-testid="stCheckbox"] {
-    background: transparent !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # logo/header
-    st.markdown(f"""
-    <div style='display:flex; align-items:center; gap:14px; margin-bottom:20px;'>
-        <img src='data:image/png;base64,{logo_b64}' width='50'/>
-        <div>
-            <div style='font-size:1.2rem;font-weight:700;'>ArthaLab</div>
-            <div style='font-size:0.8rem;color:#1769ff;'>Money OS</div>
-        </div>
-    </div>
+    <style>
+    section[data-testid="stSidebar"] { display: none; }
+    .stApp { background: #f7f5f0 !important; }
+    .main { background: #f7f5f0 !important; }
+    .block-container {
+        max-width: 100% !important;
+        padding: 2rem 4rem !important;
+        background: #f7f5f0 !important;
+    }
+    [data-testid="stFileUploader"] {
+        background: white;
+        border-radius: 16px;
+        padding: 10px;
+        border: 1px solid #ede8e0;
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        background: white !important;
+        border: 2px dashed #ded9cf !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-<div style='margin-top:30px; margin-bottom:35px;'>
+    # ── Hero via components.html — bypasses sanitizer ─────────────────────────
+    import streamlit.components.v1 as components
 
-<div style='font-size:3rem;
-            font-weight:800;
-            color:#151515;
-            line-height:1.15;
-            margin-bottom:14px;'>
-Your money has a story.
-</div>
+    hero_html = f"""
+    <div style='font-family:"DM Sans",sans-serif; background:#f7f5f0; padding:0;'>
 
-<div style='font-size:1.35rem;
-            font-weight:600;
-            color:#1769ff;
-            margin-bottom:18px;'>
-Read where your money goes — and why.
-</div>
+        <div style='display:flex; align-items:center; gap:14px; margin-bottom:40px;'>
+            <img src='data:image/png;base64,{logo_b64}' width='46'
+                 style='border-radius:8px;'/>
+            <div>
+                <div style='font-size:1.1rem; font-weight:700; color:#151515;'>ArthaLab</div>
+                <div style='font-size:0.72rem; color:#1769ff; letter-spacing:0.1em;
+                            text-transform:uppercase;'>Money OS</div>
+            </div>
+        </div>
 
-<div style='font-size:1rem;
-            color:#6c675f;
-            max-width:620px;
-            line-height:1.7;'>
-ArthaLab transforms messy bank/UPI statements into clear financial insights.
-Track spending leaks, subscriptions, lifestyle drift, savings patterns,
-and understand your financial behaviour — without spreadsheets.
-</div>
+        <div style='display:flex; gap:60px; align-items:flex-start;'>
 
-</div>
-""", unsafe_allow_html=True)
-    st.markdown("""
-<div style='display:flex; flex-wrap:wrap; gap:12px; margin-bottom:35px;'>
+            <div style='flex:1.2; min-width:0;'>
+                <div style='font-size:3rem; font-weight:800; color:#151515;
+                            line-height:1.15; margin-bottom:14px;'>
+                    Your money<br>has a story.
+                </div>
+                <div style='font-size:1.2rem; font-weight:600;
+                            color:#1769ff; margin-bottom:16px;'>
+                    Read where your money goes — and why.
+                </div>
+                <div style='font-size:0.98rem; color:#6c675f;
+                            line-height:1.75; max-width:480px;'>
+                    ArthaLab transforms messy bank/UPI statements into clear
+                    financial insights. Track spending leaks, subscriptions,
+                    lifestyle drift, savings patterns, and understand your
+                    financial behaviour — without spreadsheets.
+                </div>
+            </div>
 
-<div style='background:white;
-            border:1px solid #e5ddd0;
-            padding:12px 18px;
-            border-radius:999px;
-            font-size:0.95rem;
-            font-weight:600;'>
-💸 Spending Leak Detection
-</div>
+            <div style='flex:1; display:flex; flex-wrap:wrap; gap:12px;
+                        align-content:flex-start; padding-top:8px;'>
+                {"".join([
+                    f"<div style='background:white; border:1px solid #e5ddd0; "
+                    f"padding:12px 18px; border-radius:999px; font-size:0.9rem; "
+                    f"font-weight:600; color:#151515; "
+                    f"box-shadow:0 1px 3px rgba(0,0,0,0.05);'>{chip}</div>"
+                    for chip in [
+                        "💸 Spending Leak Detection",
+                        "📊 Budget Tracking",
+                        "🧠 AI Money Coach",
+                        "⚠️ Anomaly Detection",
+                        "🔁 Subscription Tracker",
+                        "📈 Monthly Trends",
+                        "🏷️ Smart Categorization",
+                        "🔍 Duplicate Detection",
+                    ]
+                ])}
+            </div>
 
-<div style='background:white;
-            border:1px solid #e5ddd0;
-            padding:12px 18px;
-            border-radius:999px;
-            font-size:0.95rem;
-            font-weight:600;'>
-📊 Student Budgeting
-</div>
+        </div>
+    </div>
+    """
 
-<div style='background:white;
-            border:1px solid #e5ddd0;
-            padding:12px 18px;
-            border-radius:999px;
-            font-size:0.95rem;
-            font-weight:600;'>
-🧠 Financial Education
-</div>
-
-<div style='background:white;
-            border:1px solid #e5ddd0;
-            padding:12px 18px;
-            border-radius:999px;
-            font-size:0.95rem;
-            font-weight:600;'>
-⚠️ Subscription Tracking
-</div>
-
-<div style='background:white;
-            border:1px solid #e5ddd0;
-            padding:12px 18px;
-            border-radius:999px;
-            font-size:0.95rem;
-            font-weight:600;'>
-📈 Monthly Trends
-</div>
-
-</div>
-""", unsafe_allow_html=True)
+    components.html(hero_html, height=340, scrolling=False)
 
     st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    # ── Upload + Demo row (unchanged) ─────────────────────────────────────────
+    col1, col2 = st.columns([1.4, 1], gap="large")
 
     with col1:
-        uploaded_file = st.file_uploader(
-            "Upload primary CSV",
-            type=["csv"]
-        )
+        st.markdown("""
+        <div style='font-family:"DM Sans",sans-serif; font-weight:700;
+                    font-size:1rem; color:#151515; margin-bottom:12px;'>
+            Upload your statement
+        </div>
+        """, unsafe_allow_html=True)
 
-        extra_files = st.file_uploader(
+        uploaded_file = st.file_uploader("Upload primary CSV", type=["csv"])
+        extra_files   = st.file_uploader(
             "Add more accounts (optional)",
             type=["csv"],
-            accept_multiple_files=True
+            accept_multiple_files=True,
         )
-        render_csv_guide()
 
     with col2:
         st.markdown("""
-        ### Try Demo Data
+        <div style='background:#f0f4ff; border:1px solid #d0dbff;
+                    border-radius:16px; padding:32px 28px; text-align:center;'>
+            <div style='font-size:2rem; margin-bottom:10px;'>🗂️</div>
+            <div style='font-family:"DM Sans",sans-serif; font-weight:700;
+                        font-size:1.1rem; color:#151515; margin-bottom:8px;'>
+                Try Demo Data
+            </div>
+            <div style='font-size:0.85rem; color:#6c675f; line-height:1.65; margin-bottom:20px;'>
+                Not ready to upload? Explore a 3-month demo statement
+                with real spending patterns, anomalies, leaks and insights.
+                No account needed.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        use_sample = st.button(
+            "→ Explore with demo data",
+            use_container_width=True,
+            type="secondary",
+        )
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class='full-width-guide'>", unsafe_allow_html=True)
+    render_csv_guide()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        Explore sample transaction history with:
-
-        - subscriptions  
-        - anomalies  
-        - leaks  
-        - spending patterns  
-        """)
-
-        use_sample = st.button("Use Demo Data")
-
-    # nothing selected
+    # ── Logic (unchanged) ─────────────────────────────────────────────────────
     if not uploaded_file and not use_sample:
         st.stop()
 
-    # save uploaded files
     extra_bytes = tuple(f.read() for f in extra_files) if extra_files else ()
 
     if uploaded_file:
         st.session_state.uploaded_file_bytes = uploaded_file.read()
-        st.session_state.extra_bytes = extra_bytes
-        st.session_state.data_source = f"📁 {uploaded_file.name}"
-        st.session_state.use_sample_data = False
+        st.session_state.extra_bytes         = extra_bytes
+        st.session_state.data_source         = f"📁 {uploaded_file.name}"
+        st.session_state.use_sample_data     = False
 
     if use_sample:
-        st.session_state.use_sample_data = True
+        st.session_state.use_sample_data     = True
         st.session_state.uploaded_file_bytes = None
-        st.session_state.data_source = "🗂️ Sample Data (Demo)"
+        st.session_state.data_source         = "🗂️ Sample Data (Demo)"
 
     st.session_state.data_loaded = True
     st.rerun()
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PROCESS DATA
@@ -2199,6 +2163,9 @@ elif page == "AI Coach":
         st.rerun()
 
     # ── Input bar ─────────────────────────────────────────────────────────────
+    if "input_key" not in st.session_state:
+        st.session_state.input_key = 0
+
     st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
     col_input, col_send, col_clear = st.columns([7, 1.2, 0.9])
 
@@ -2207,13 +2174,14 @@ elif page == "AI Coach":
             "chat_input_label",
             placeholder="Ask anything about your spending…",
             label_visibility="collapsed",
-            key="chat_input",
+            key=f"chat_input_{st.session_state.input_key}",
         )
     with col_send:
         send = st.button("Send →", type="primary", use_container_width=True)
     with col_clear:
         if st.button("Clear", use_container_width=True):
             st.session_state.chat_history = []
+            st.session_state.input_key += 1
             st.rerun()
 
     if send and user_input.strip():
@@ -2223,6 +2191,7 @@ elif page == "AI Coach":
                 "content": user_input.strip()
             })
             st.session_state.questions_asked += 1
+            st.session_state.input_key += 1
             st.rerun()
         else:
             st.warning("You've reached today's limit of 10 questions.")

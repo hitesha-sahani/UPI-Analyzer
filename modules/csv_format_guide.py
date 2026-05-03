@@ -122,9 +122,9 @@ def render_csv_guide():
 
         # ── Quick fix tip ─────────────────────────────────────────────────────
         st.info(
-            "💡 **Quick fix:** Open your CSV in Excel or Google Sheets and rename "
+            "**Quick fix:** Open your CSV in Excel or Google Sheets and rename "
             "the headers to match any accepted name above. "
             "Minimum needed: **Date** + any **Amount** column. "
             "Everything else improves the analysis but won't break the upload.",
             icon="💡",
-        ) 
+        )
