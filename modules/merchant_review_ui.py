@@ -12,6 +12,7 @@ This avoids two problems:
 """
 
 from __future__ import annotations
+import re
 
 import streamlit as st
 import pandas as pd
@@ -29,7 +30,7 @@ def _get_all_categories() -> list[str]:
             "Education", "Housing & Rent", "Finance & Investment",
             "Travel & Stays", "Entertainment", "P2P Transfers",
             "Personal Care", "Home & Maintenance", "Charity & Donations",
-            "Others",
+            "Others","Cash & ATM"
         ]
         ordered = [c for c in priority if c in cats]
         ordered += [c for c in cats if c not in ordered]
@@ -60,15 +61,12 @@ def _source_tag(key, current_category, user_map):
 
 
 def _display_key(row) -> str:
-    """
-    Use upi_id only when it looks like a real UPI handle (contains @).
-    Reference/txn numbers like S58931978 are rejected and we fall back
-    to description instead.
-    """
-    uid = str(row.get("upi_id", "")).strip()
-    if uid and "@" in uid:
-        return uid
-    return str(row.get("description", "")).strip()
+    desc = str(row.get("description", "")).strip()
+    # Split on P2M/ or P2V/ — everything after is the actual payee info
+    # e.g. UPI/123/P2M/rahul@okaxis/Note  ->  rahul@okaxis/Note
+    # Clean names like 'Swiggy Order' have neither, pass through unchanged
+    m = re.split(r'P2M/|P2V/', desc, maxsplit=1)
+    return m[1].strip() if len(m) > 1 else desc
 
 
 def render_merchant_review(df, user_id, *, load_and_process_fn=None, key="merchant_review"):

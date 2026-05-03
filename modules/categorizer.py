@@ -63,8 +63,9 @@ def _categorize_single(description: str, upi_id: str = "", user_id: str | None =
     """
     if user_id:
         # Try upi_id first — it's the most specific identifier
-        uid = str(upi_id).strip().lower()
-        if uid and "@" in uid:          # only real UPI handles, not txn ref numbers
+        uid_raw = str(upi_id).strip()
+        uid = uid_raw.split("@", 1)[1].strip().lower() if "@" in uid_raw else ""
+        if uid:
             override = get_override(user_id, uid)
             if override:
                 return override

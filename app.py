@@ -36,6 +36,7 @@ from modules.ai_advisor import (build_financial_context, get_api_client,
 from modules.benchmarks       import (compute_benchmarks, get_savings_benchmark,
                                       get_standout_categories)
 from modules.merchant_review_ui import render_merchant_review
+from modules.csv_format_guide import render_csv_guide
 
 
 def _img_to_b64(path: str) -> str:
@@ -481,6 +482,7 @@ and understand your financial behaviour — without spreadsheets.
             type=["csv"],
             accept_multiple_files=True
         )
+        render_csv_guide()
 
     with col2:
         st.markdown("""
