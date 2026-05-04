@@ -12,7 +12,7 @@ import base64
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ArthaLab Money OS",
+    page_title="Vittā Money OS",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -370,7 +370,7 @@ if not st.session_state.data_loaded:
             <img src='data:image/png;base64,{logo_b64}' width='46'
                  style='border-radius:8px;'/>
             <div>
-                <div style='font-size:1.1rem; font-weight:700; color:#151515;'>ArthaLab</div>
+                <div style='font-size:1.1rem; font-weight:700; color:#151515;'>Vittā</div>
                 <div style='font-size:0.72rem; color:#1769ff; letter-spacing:0.1em;
                             text-transform:uppercase;'>Money OS</div>
             </div>
@@ -389,10 +389,10 @@ if not st.session_state.data_loaded:
                 </div>
                 <div style='font-size:0.98rem; color:#6c675f;
                             line-height:1.75; max-width:480px;'>
-                    ArthaLab transforms messy bank/UPI statements into clear
+                    Vittā transforms messy bank/UPI statements into clear
                     financial insights. Track spending leaks, subscriptions,
                     lifestyle drift, savings patterns, and understand your
-                    financial behaviour — without spreadsheets.
+                    financial behaviour stress free.
                 </div>
             </div>
 
@@ -523,20 +523,45 @@ if df is None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# SIDEBAR (move your sidebar block here)
+# SIDEBAR 
 # ──────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(f"""
-    <div style='display:flex; align-items:center; gap:12px; padding:16px 0 10px;'>
-        <img src='data:image/png;base64,{logo_b64}' width='48'/>
-        <div>
-            <div style='font-weight:700;'>ArthaLab</div>
-            <div style='font-size:0.7rem;color:#1769ff;'>Money OS</div>
-        </div>
-    </div>
+    st.markdown("""
+    <style>
+    /* Hide radio dot */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label div:first-child {
+        display: none !important;
+    }
+    /* Nav button style */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        display: block !important;
+        width: 100% !important;
+        padding: 9px 14px !important;
+        border-radius: 0 8px 8px 0 !important;
+        border-left: 3px solid transparent !important;
+        color: #8A8AB0 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+        margin-bottom: 2px !important;
+    }
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background: rgba(108,99,255,0.10) !important;
+        color: #C8C8E8 !important;
+        border-left: 3px solid rgba(108,99,255,0.3) !important;
+    }
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+        background: rgba(108,99,255,0.15) !important;
+        color: #E0E0F0 !important;
+        border-left: 3px solid #6C63FF !important;
+        font-weight: 600 !important;
+        border-radius: 0 8px 8px 0 !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
-
-    st.divider()
+    # ... logo ...
 
     if st.session_state.get("page_override"):
         page = st.session_state.page_override
@@ -544,7 +569,7 @@ with st.sidebar:
     else:
         page = st.radio(
             "Navigate",
-            ["Dashboard", "Learn", "Leaks", "Transactions", "Budget","Merchants","AI Coach"],
+            ["Dashboard", "Learn", "Leaks", "Transactions", "Budget", "Merchants", "AI Coach"],
             label_visibility="collapsed",
         )
 
@@ -552,10 +577,32 @@ with st.sidebar:
 
     try:
         stats_sidebar = get_summary_stats(df)
+        st.markdown("""
+        <div style='font-family:"DM Sans",sans-serif; font-size:0.78rem; font-weight:600;
+                    letter-spacing:.08em; text-transform:uppercase; color:#8A8AB0;
+                    margin-bottom:8px; padding-left:4px;'>Quick Stats</div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("### 📈 Quick Stats")
-        st.metric("₹ Spent", f"₹{stats_sidebar['total_spent']:,.0f}")
-        st.metric("Transactions", stats_sidebar["total_transactions"])
+        st.markdown(f"""
+        <div style='background:#F0EFFF; border:1px solid rgba(108,99,255,0.2);
+                    border-radius:10px; padding:10px 14px; margin-bottom:8px;
+                    border-top: 2px solid #6C63FF;'>
+            <div style='font-family:"DM Sans",sans-serif; font-size:0.67rem;
+                        color:#8A8AB0; text-transform:uppercase; letter-spacing:0.1em;
+                        margin-bottom:2px;'>Total Spent</div>
+            <div style='font-family:"Space Mono",monospace; font-size:1.25rem;
+                        font-weight:700; color:#1a1a2e;'>₹{stats_sidebar['total_spent']:,.0f}</div>
+        </div>
+        <div style='background:#F0EFFF; border:1px solid rgba(108,99,255,0.2);
+                    border-radius:10px; padding:10px 14px; margin-bottom:8px;
+                    border-top: 2px solid #4ECDC4;'>
+            <div style='font-family:"DM Sans",sans-serif; font-size:0.67rem;
+                        color:#8A8AB0; text-transform:uppercase; letter-spacing:0.1em;
+                        margin-bottom:2px;'>Transactions</div>
+            <div style='font-family:"Space Mono",monospace; font-size:1.25rem;
+                        font-weight:700; color:#1a1a2e;'>{stats_sidebar['total_transactions']}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # optional reset button
         if st.button("🔄 Upload New File"):
@@ -878,7 +925,7 @@ date_end   = stats["date_range_end"].strftime("%d %b %Y")   if pd.notna(stats["d
 
 st.markdown(f"""
 <div class='hero'>
-    <h1>ArthaLab Money OS</h1>
+    <h1>Vittā Money OS</h1>
     <p>{data_source} &nbsp;·&nbsp; {date_start} → {date_end} &nbsp;·&nbsp; {stats['total_transactions']} transactions</p>
 </div>
 """, unsafe_allow_html=True)
@@ -893,7 +940,7 @@ if st.session_state.get("show_merchant_review") and not st.session_state.get("me
                 Take 2 minutes for better insights
             </div>
             <div style='font-size:0.88rem; color:#6c675f; line-height:1.7; margin-bottom:20px;'>
-                ArthaLab auto-categorizes your transactions, but reviewing your
+                Vittā auto-categorizes your transactions, but reviewing your
                 merchants helps us get it right — especially for local vendors,
                 transfers to family, and recurring payments.
             </div>
@@ -1529,38 +1576,41 @@ elif page == "Budget":
     if monthly_budget > 0:
         st.markdown("<div class='section-header'>Monthly Overview</div>", unsafe_allow_html=True)
         monthly_overview = compute_monthly_overview(df, monthly_budget)
+        rows = [monthly_overview.iloc[i:i+6] for i in range(0, len(monthly_overview), 6)]
 
-        month_cols = st.columns(len(monthly_overview))
-        for i, (_, mrow) in enumerate(monthly_overview.iterrows()):
-            with month_cols[i]:
-                pct   = min(mrow["pct_used"], 100)
-                color = mrow["color"]
-                st.markdown(f"""
-                <div style='background:#ffffff; border:2px solid {color}; border-radius:12px;
-                            padding:16px 10px; text-align:center;'>
-                    <div style='font-family:"DM Sans",sans-serif; font-size:0.72rem;
-                                color:#6c675f; text-transform:uppercase; letter-spacing:0.06em;'>
-                        {mrow["month"]}
+        for chunk in rows:
+            month_cols = st.columns(len(chunk))
+            for i, (_, mrow) in enumerate(chunk.iterrows()):
+                with month_cols[i]:
+                    pct   = min(mrow["pct_used"], 100)
+                    color = mrow["color"]
+                    st.markdown(f"""
+                    <div style='background:#ffffff; border:2px solid {color}; border-radius:12px;
+                                padding:16px 10px; text-align:center;'>
+                        <div style='font-family:"DM Sans",sans-serif; font-size:0.72rem;
+                                    color:#6c675f; text-transform:uppercase; letter-spacing:0.06em;'>
+                            {mrow["month"]}
+                        </div>
+                        <div style='font-family:"DM Sans",sans-serif; font-weight:800;
+                                    font-size:1.4rem; color:{color}; margin:6px 0;'>
+                            {pct:.0f}%
+                        </div>
+                        <div style='font-size:0.75rem; color:#151515; font-family:"DM Sans",sans-serif;'>
+                            ₹{mrow["spent"]:,.0f}
+                        </div>
+                        <div style='font-size:0.7rem; color:#6c675f; margin-top:2px;'>
+                            of ₹{mrow["budget"]:,.0f}
+                        </div>
+                        <div style='background:#f7f5f0; border-radius:99px; height:4px; margin-top:8px;'>
+                            <div style='width:{pct}%; height:4px; background:{color}; border-radius:99px;'></div>
+                        </div>
+                        <div style='font-size:0.68rem; color:{color}; font-weight:600;
+                                    font-family:"DM Sans",sans-serif; margin-top:6px;'>
+                            {mrow["status"]}
+                        </div>
                     </div>
-                    <div style='font-family:"DM Sans",sans-serif; font-weight:800;
-                                font-size:1.4rem; color:{color}; margin:6px 0;'>
-                        {pct:.0f}%
-                    </div>
-                    <div style='font-size:0.75rem; color:#151515; font-family:"DM Sans",sans-serif;'>
-                        ₹{mrow["spent"]:,.0f}
-                    </div>
-                    <div style='font-size:0.7rem; color:#6c675f; margin-top:2px;'>
-                        of ₹{mrow["budget"]:,.0f}
-                    </div>
-                    <div style='background:#f7f5f0; border-radius:99px; height:4px; margin-top:8px;'>
-                        <div style='width:{pct}%; height:4px; background:{color}; border-radius:99px;'></div>
-                    </div>
-                    <div style='font-size:0.68rem; color:{color}; font-weight:600;
-                                font-family:"DM Sans",sans-serif; margin-top:6px;'>
-                        {mrow["status"]}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
