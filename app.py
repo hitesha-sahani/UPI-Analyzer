@@ -8,6 +8,7 @@ import json
 import plotly.graph_objects as go
 from pathlib import Path
 import base64
+import html
 
 
 # ── Page config ────────────────────────────────────────────────────────────────
@@ -387,22 +388,21 @@ if not st.session_state.data_loaded:
             <div style='flex:1.2; min-width:0;'>
                 <div style='font-size:3rem; font-weight:800; color:#151515;
                             line-height:1.15; margin-bottom:14px;'>
-                    Your money<br>has a story.
+                    Know your money.<br>Fix the leaks.
                 </div>
                 <div style='font-size:1.2rem; font-weight:600;
                             color:#1769ff; margin-bottom:16px;'>
-                    Read where your money goes — and why.
+                    A personal money checkup from your own UPI data.
                 </div>
                 <div style='font-size:0.98rem; color:#6c675f;
                             line-height:1.75; max-width:480px;'>
-                    Vittā transforms messy bank/UPI statements into clear
-                    financial insights. Track spending leaks, subscriptions,
-                    lifestyle drift, savings patterns, and understand your
-                    financial behaviour stress free.
+                    Upload a CSV and see what is quietly shaping your month:
+                    repeat spends, avoidable leaks, unusual payments, and the
+                    habits that deserve a tiny reset. No judgment. Just clarity.
                 </div>
             </div>
 
-            <div style='flex:1; display:flex; flex-wrap:wrap; gap:12px;
+            <div style='flex:1; display:flex; flex-wrap:wrap; gap:16px;
                         align-content:flex-start; padding-top:8px;'>
                 {"".join([
                     f"<div style='background:white; border:1px solid #e5ddd0; "
@@ -410,14 +410,12 @@ if not st.session_state.data_loaded:
                     f"font-weight:600; color:#151515; "
                     f"box-shadow:0 1px 3px rgba(0,0,0,0.05);'>{chip}</div>"
                     for chip in [
-                        "💸 Spending Leak Detection",
-                        "📊 Budget Tracking",
-                        "🧠 AI Money Coach",
-                        "⚠️ Anomaly Detection",
-                        "🔁 Subscription Tracker",
-                        "📈 Monthly Trends",
-                        "🏷️ Smart Categorization",
-                        "🔍 Duplicate Detection",
+                        "Find silent leaks",
+                        "Spot repeat charges",
+                        "Catch unusual payments",
+                        "See spending habits",
+                        "Ask your AI coach",
+                        "Clean duplicate entries",
                     ]
                 ])}
             </div>
@@ -438,7 +436,7 @@ if not st.session_state.data_loaded:
         st.markdown("""
         <div style='font-family:"DM Sans",sans-serif; font-weight:700;
                     font-size:1rem; color:#151515; margin-bottom:12px;'>
-            Upload your statement
+            Start with your statement
         </div>
         """, unsafe_allow_html=True)
 
@@ -456,18 +454,17 @@ if not st.session_state.data_loaded:
             <div style='font-size:2rem; margin-bottom:10px;'>🗂️</div>
             <div style='font-family:"DM Sans",sans-serif; font-weight:700;
                         font-size:1.1rem; color:#151515; margin-bottom:8px;'>
-                Try Demo Data
+                Try it with demo data
             </div>
             <div style='font-size:0.85rem; color:#6c675f; line-height:1.65; margin-bottom:20px;'>
-                Not ready to upload? Explore a 3-month demo statement
-                with real spending patterns, anomalies, leaks and insights.
-                No account needed.
+                Want to look around first? Open a sample month and see the
+                leaks, habits, and coaching flow before using your own CSV.
             </div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         use_sample = st.button(
-            "→ Explore with demo data",
+            "Explore demo first",
             use_container_width=True,
             type="secondary",
         )
@@ -859,6 +856,85 @@ section[data-testid="stSidebar"] {
 .hero::after { content: none; }
 .hero h1 { color: var(--mos-ink); font-size: 2.05rem; letter-spacing: 0; }
 .hero p { color: var(--mos-muted); font-size: 0.94rem; }
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f7f5f0 100%);
+    border: 1px solid var(--mos-line);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 2px 0 22px;
+    box-shadow: 0 1px 2px rgba(20,20,20,0.04);
+}
+.dashboard-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 240px;
+}
+.dashboard-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--mos-line);
+}
+.dashboard-title {
+    color: var(--mos-ink) !important;
+    font-size: 1.42rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.dashboard-subtitle {
+    color: var(--mos-muted) !important;
+    font-size: 0.82rem;
+    margin-top: 4px;
+}
+.dashboard-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.header-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 118px;
+    background: #ffffff;
+    border: 1px solid var(--mos-line);
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+.header-chip-label {
+    color: var(--mos-muted) !important;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.header-chip-value {
+    color: var(--mos-ink) !important;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+@media (max-width: 760px) {
+    .dashboard-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+    }
+    .dashboard-meta {
+        justify-content: flex-start;
+        width: 100%;
+    }
+    .header-chip {
+        flex: 1 1 140px;
+    }
+}
 .kpi-card, .money-card, .insight-card, .action-card, .leak-card {
     background: var(--mos-panel);
     border: 1px solid var(--mos-line);
@@ -945,10 +1021,32 @@ div[data-testid="stDataFrame"] {
 date_start = stats["date_range_start"].strftime("%d %b %Y") if pd.notna(stats["date_range_start"]) else "—"
 date_end   = stats["date_range_end"].strftime("%d %b %Y")   if pd.notna(stats["date_range_end"])   else "—"
 
+data_source_label = html.escape(str(data_source))
+transaction_count = f"{int(stats['total_transactions']):,}" if pd.notna(stats["total_transactions"]) else "0"
+
 st.markdown(f"""
-<div class='hero'>
-    <h1>Vittā Money OS</h1>
-    <p>{data_source} &nbsp;·&nbsp; {date_start} → {date_end} &nbsp;·&nbsp; {stats['total_transactions']} transactions</p>
+<div class='dashboard-header'>
+    <div class='dashboard-brand'>
+        <img class='dashboard-logo' src='data:image/png;base64,{logo_b64}' alt='Vitta logo'/>
+        <div>
+            <div class='dashboard-title'>Vitta Money OS</div>
+            <div class='dashboard-subtitle'>Your financial command center</div>
+        </div>
+    </div>
+    <div class='dashboard-meta'>
+        <div class='header-chip'>
+            <span class='header-chip-label'>Source</span>
+            <span class='header-chip-value'>{data_source_label}</span>
+        </div>
+        <div class='header-chip'>
+            <span class='header-chip-label'>Period</span>
+            <span class='header-chip-value'>{date_start} &rarr; {date_end}</span>
+        </div>
+        <div class='header-chip'>
+            <span class='header-chip-label'>Transactions</span>
+            <span class='header-chip-value'>{transaction_count}</span>
+        </div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 

@@ -221,7 +221,7 @@ def _render_explainer() -> None:
         When no reference number is available:
         - Amount matches within ±₹1
         - Date within ±1 day
-        - Description similarity ≥ 72/100
+        - Description similarity ≥ 70/100
 
         The transaction with the richer description is shown as the original.
         You decide whether the flagged row is removed from analytics.

@@ -92,7 +92,7 @@ def render_merchant_review(df, user_id, *, load_and_process_fn=None, key="mercha
     )
 
     # ── Header ────────────────────────────────────────────────────────────────
-    st.markdown("<div class='section-header'>🏪 Review Merchant Categories</div>",
+    st.markdown("<div class='section-header'>Review Merchant Categories</div>",
                 unsafe_allow_html=True)
     st.markdown(
         f"<small style='color:#8A8AB0'>Found "
