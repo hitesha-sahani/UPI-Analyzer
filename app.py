@@ -31,8 +31,9 @@ from modules.budget_tracker import (
 from modules.forecaster       import forecast_all_categories, get_total_forecast
 from modules.deduplicator     import (
     merge_accounts, deduplicate, apply_manual_review,
-    get_dedup_report, get_clean_df, get_duplicate_pairs
+    get_clean_df
 )
+from modules.pages.duplicate_review import render_duplicate_review
 from modules.ai_advisor import (build_financial_context, get_api_client,
                                   chat_stream, chat_once, generate_monthly_summary,
                                   STARTER_QUESTIONS, ANTHROPIC_AVAILABLE, GROQ_AVAILABLE)
@@ -584,9 +585,9 @@ with st.sidebar:
     else:
         nav_pages = ["Dashboard", "Learn", "Leaks", "Transactions", "Budget", "Merchants", "AI Coach"]
 
-        # Only show Multi-Account if multiple sources were uploaded
+        # Only show Duplicate Review if multiple sources were uploaded
         if merged_raw is not None and merged_raw["source"].nunique() > 1:
-            nav_pages.append("Multi-Account")
+            nav_pages.append("Duplicate Review")
 
         page = st.radio(
             "Navigate",
@@ -1980,196 +1981,12 @@ elif page == "🔮 Forecast":
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE: MULTI-ACCOUNT
+# PAGE: Duplicate Review
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "Multi-Account":
+elif page == "Duplicate Review":
 
-    st.markdown("<div class='section-header'>Multi-Account Deduplication</div>", unsafe_allow_html=True)
-    st.markdown(
-        "<small style='color:#6c675f;'>Detects duplicate transactions across multiple "
-        "UPI apps — so your spend totals aren't double-counted.</small>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
+    render_duplicate_review(merged_raw)
 
-    if merged_raw is not None:
-        dedup_report = get_dedup_report(merged_raw)
-
-        # ── KPIs ──────────────────────────────────────────────────────────────
-        d1, d2, d3, d4 = st.columns(4)
-        for col, label, val, color in [
-            (d1, "Accounts merged",    len(dedup_report["sources"]),                     "#1769ff"),
-            (d2, "Total transactions", len(merged_raw),                                  "#151515"),
-            (d3, "Flagged for review", dedup_report["total_duplicates"],                 "#FF9F43"),
-            (d4, "Confirmed removed",  f"₹{dedup_report['amount_deduplicated']:,.0f}",  "#6BCB77"),
-        ]:
-            with col:
-                st.markdown(f"""
-                <div class='kpi-card'>
-                    <div class='kpi-value' style='color:{color}; font-size:1.4rem;'>{val}</div>
-                    <div class='kpi-label'>{label}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Source breakdown ───────────────────────────────────────────────────
-        st.markdown("<div class='section-header'>Account Sources</div>", unsafe_allow_html=True)
-
-        source_counts = merged_raw.groupby("source").size().reset_index(name="transactions")
-        source_counts["debit_amount"] = merged_raw.groupby("source").apply(
-            lambda g: g[g["type"] == "Debit"]["amount"].sum()
-        ).values
-
-        for _, sr in source_counts.iterrows():
-            st.markdown(f"""
-            <div style='display:flex; justify-content:space-between; padding:12px 16px;
-                        background:#ffffff; border-radius:8px; margin-bottom:6px;
-                        border:1px solid #ede8e0;'>
-                <span style='font-family:"DM Sans",sans-serif; font-weight:600;
-                             color:#151515;'>🏦 {sr['source']}</span>
-                <span style='font-family:"DM Sans",sans-serif; font-size:0.85rem; color:#6c675f;'>
-                    {sr['transactions']} txns &nbsp;·&nbsp; ₹{sr['debit_amount']:,.0f} spent
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Duplicate breakdown ────────────────────────────────────────────────
-        st.markdown("<div class='section-header'>Duplicate Summary</div>", unsafe_allow_html=True)
-
-        e1, e2 = st.columns(2)
-        with e1:
-            st.markdown(f"""
-            <div class='kpi-card'>
-                <div class='kpi-value' style='color:#1769ff; font-size:1.3rem;'>
-                    {dedup_report['exact_ref_dups']}
-                </div>
-                <div class='kpi-label'>Exact reference matches</div>
-                <div style='font-size:0.75rem; color:#6c675f; margin-top:4px;'>
-                    Same UPI transaction ID found in both accounts
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with e2:
-            st.markdown(f"""
-            <div class='kpi-card'>
-                <div class='kpi-value' style='color:#FF9F43; font-size:1.3rem;'>
-                    {dedup_report['fuzzy_dups']}
-                </div>
-                <div class='kpi-label'>Fuzzy description matches</div>
-                <div style='font-size:0.75rem; color:#6c675f; margin-top:4px;'>
-                    Same amount + date + similar description across accounts
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Duplicate rows table ───────────────────────────────────────────────
-        duplicate_pairs = get_duplicate_pairs(merged_raw)
-
-        if duplicate_pairs:
-            st.markdown("<div class='section-header'>Detected Duplicate Candidates</div>", unsafe_allow_html=True)
-            dup_display = dedup_report["review_rows"].copy()
-            dup_display["date"] = pd.to_datetime(dup_display["date"]).dt.strftime("%d %b %Y")
-            dup_display["amount"] = dup_display["amount"].apply(lambda x: f"₹{x:,.0f}")
-            dup_display.columns = ["Date", "Description", "Amount", "Source", "Reason", "Decision"]
-            st.dataframe(dup_display, use_container_width=True, hide_index=True)
-        else:
-            st.success("✅ No duplicate transactions found across your accounts!")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div class='section-header'>Review Duplicate Pairs</div>", unsafe_allow_html=True)
-
-        if duplicate_pairs:
-            st.caption("Pending rows stay in analytics until you explicitly remove them.")
-
-        for pair in duplicate_pairs:
-            pair_id = str(pair["pair_id"])
-            original = pair["original"]
-            duplicate = pair["duplicate"]
-            previous_decision = st.session_state.manual_duplicate_decisions.get(pair_id)
-            current_decision = previous_decision or "Pending"
-            radio_key = f"dup_action_{pair_id}"
-
-            st.markdown(f"#### {pair_id}")
-
-            c1, c2 = st.columns(2, gap="large")
-
-            with c1:
-                st.markdown("**Original Transaction**")
-
-                st.dataframe(pd.DataFrame([{
-                    "Date": pd.to_datetime(original["date"]).strftime("%d %b %Y"),
-                    "Description": original["description"],
-                    "Amount": f"₹{original['amount']:,.0f}",
-                    "Source": original["source"],
-                }]), use_container_width=True, hide_index=True)
-
-            with c2:
-                st.markdown("**Flagged Transaction**")
-
-                st.dataframe(pd.DataFrame([{
-                    "Date": pd.to_datetime(duplicate["date"]).strftime("%d %b %Y"),
-                    "Description": duplicate["description"],
-                    "Amount": f"₹{duplicate['amount']:,.0f}",
-                    "Source": duplicate["source"],
-                }]), use_container_width=True, hide_index=True)
-
-            decision_options = ["Pending review", "Remove duplicate", "Keep both"]
-            default_index = {
-                "Pending": 0,
-                "Duplicate": 1,
-                "Keep": 2,
-            }.get(current_decision, 0)
-            choice = st.radio(
-                f"Decision for {pair_id}",
-                decision_options,
-                index=default_index,
-                horizontal=True,
-                key=radio_key,
-            )
-
-            if choice == "Remove duplicate":
-                new_decision = "Duplicate"
-            elif choice == "Keep both":
-                new_decision = "Keep"
-            else:
-                new_decision = None
-
-            if new_decision is None and previous_decision is not None:
-                st.session_state.manual_duplicate_decisions.pop(pair_id, None)
-                st.rerun()
-            elif new_decision is not None and previous_decision != new_decision:
-                st.session_state.manual_duplicate_decisions[pair_id] = new_decision
-                st.rerun()
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-        # ── How it works ──────────────────────────────────────────────────────
-        with st.expander("ℹ️ How deduplication works"):
-            st.markdown("""
-            Duplicates are detected in two stages:
-
-            **Stage 1 — Exact reference match** (high confidence)
-            Same UPI transaction reference number (e.g. S96714620) + same amount
-            across two different accounts → definitive duplicate.
-
-            **Stage 2 — Fuzzy match** (fallback)
-            When no reference number is available:
-            - Amount matches within ±₹1
-            - Date within ±1 day
-            - Description similarity ≥ 72/100
-
-            The transaction with the richer description is always kept.
-            The other is excluded from all spend analytics.
-            """)
-    else:
-        st.info("Upload your primary CSV, then add extra account CSVs using 'Add more accounts' in the sidebar.")
-
-# ══════════════════════════════════════════════════════════════════════════════
 # PAGE: AI ADVISOR  🤖
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "AI Coach":
