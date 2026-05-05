@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import List, Dict
+from typing import List
 
 
 def _mom_trend(df: pd.DataFrame) -> pd.DataFrame:

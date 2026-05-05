@@ -8,16 +8,6 @@ that break inside expanders.
 import streamlit as st
 
 
-def _chip_row(chips: list[tuple[str, bool]]):
-    """Render a row of code chips using st.code inline style via columns."""
-    cols = st.columns(len(chips))
-    for col, (label, highlight) in zip(cols, chips):
-        if highlight:
-            col.markdown(f"`{label}`")
-        else:
-            col.caption(f"`{label}`")
-
-
 def render_csv_guide():
 
     with st.expander("🛠️  Error after uploading? We got you", expanded=False):

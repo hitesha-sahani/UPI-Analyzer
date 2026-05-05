@@ -1,6 +1,6 @@
 import pandas as pd
-from datetime import date, timedelta
-from typing import Dict, Optional
+from datetime import date
+from typing import Dict
 
 
 ALL_CATEGORIES = [

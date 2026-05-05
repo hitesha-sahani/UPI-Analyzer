@@ -29,7 +29,6 @@ the file atomically so the cache never goes stale.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 # ── Path ──────────────────────────────────────────────────────────────────────
