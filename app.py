@@ -142,7 +142,7 @@ if not st.session_state.data_loaded:
       .hero-shell {{
         font-family: "DM Sans", sans-serif;
         background: #f7f5f0;
-        padding: 0;
+        padding: 2.5rem 0 1.5rem 0;
       }}
       .hero-brand {{
         display: flex;
@@ -300,7 +300,6 @@ if not st.session_state.data_loaded:
     components.html(hero_html, height=420, scrolling=False)
 
     st.divider()
-    st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Upload + Demo row (unchanged) ─────────────────────────────────────────
     col1, col2 = st.columns([1.4, 1], gap="large")
@@ -341,7 +340,6 @@ if not st.session_state.data_loaded:
             use_container_width=True,
             type="secondary",
         )
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<div class='full-width-guide'>", unsafe_allow_html=True)
     render_csv_guide()
     st.markdown("</div>", unsafe_allow_html=True)

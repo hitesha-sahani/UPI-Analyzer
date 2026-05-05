@@ -43,7 +43,7 @@ def apply_app_theme() -> None:
 
         .block-container {
             max-width: 1180px;
-            padding-top: 1.25rem;
+            padding-top: 4rem;
             padding-bottom: 2rem;
         }
 
