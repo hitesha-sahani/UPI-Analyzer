@@ -138,44 +138,150 @@ if not st.session_state.data_loaded:
     import streamlit.components.v1 as components
 
     hero_html = f"""
-    <div style='font-family:"DM Sans",sans-serif; background:#f7f5f0; padding:0;'>
+    <style>
+      .hero-shell {{
+        font-family: "DM Sans", sans-serif;
+        background: #f7f5f0;
+        padding: 0;
+      }}
+      .hero-brand {{
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 40px;
+      }}
+      .hero-brand img {{
+        width: 46px;
+        border-radius: 8px;
+      }}
+      .hero-brand-name {{
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #151515;
+      }}
+      .hero-brand-sub {{
+        font-size: 0.72rem;
+        color: #8aa8cd;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }}
+      .hero-layout {{
+        display: flex;
+        gap: 60px;
+        align-items: flex-start;
+      }}
+      .hero-copy {{
+        flex: 1.2;
+        min-width: 0;
+      }}
+      .hero-title {{
+        font-size: 3rem;
+        font-weight: 800;
+        color: #151515;
+        line-height: 1.15;
+        margin-bottom: 14px;
+      }}
+      .hero-subtitle {{
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #86a7cf;
+        margin-bottom: 16px;
+      }}
+      .hero-body {{
+        font-size: 0.98rem;
+        color: #6c675f;
+        line-height: 1.75;
+        max-width: 480px;
+      }}
+      .hero-chips {{
+        flex: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-content: flex-start;
+        padding-top: 8px;
+      }}
+      .hero-chip {{
+        background: white;
+        border: 1px solid #e5ddd0;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #151515;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }}
+      @media (max-width: 720px) {{
+        .hero-brand {{
+          margin-bottom: 24px;
+          gap: 12px;
+        }}
+        .hero-brand img {{
+          width: 40px;
+        }}
+        .hero-brand-name {{
+          font-size: 1rem;
+        }}
+        .hero-brand-sub {{
+          font-size: 0.68rem;
+        }}
+        .hero-layout {{
+          flex-direction: column;
+          gap: 18px;
+        }}
+        .hero-title {{
+          font-size: 2.15rem;
+          line-height: 1.12;
+          margin-bottom: 12px;
+        }}
+        .hero-subtitle {{
+          font-size: 1rem;
+          margin-bottom: 12px;
+        }}
+        .hero-body {{
+          font-size: 0.92rem;
+          line-height: 1.65;
+          max-width: none;
+        }}
+        .hero-chips {{
+          gap: 10px;
+          padding-top: 0;
+        }}
+        .hero-chip {{
+          padding: 9px 14px;
+          font-size: 0.82rem;
+        }}
+      }}
+    </style>
+    <div class='hero-shell'>
 
-        <div style='display:flex; align-items:center; gap:14px; margin-bottom:40px;'>
-            <img src='data:image/png;base64,{logo_b64}' width='46'
-                 style='border-radius:8px;'/>
+        <div class='hero-brand'>
+            <img src='data:image/png;base64,{logo_b64}' alt='Vitta logo'/>
             <div>
-                <div style='font-size:1.1rem; font-weight:700; color:#151515;'>Vittā</div>
-                <div style='font-size:0.72rem; color:#8aa8cd; letter-spacing:0.1em;
-                            text-transform:uppercase;'>Money OS</div>
+                <div class='hero-brand-name'>Vitt?</div>
+                <div class='hero-brand-sub'>Money OS</div>
             </div>
         </div>
 
-        <div style='display:flex; gap:60px; align-items:flex-start;'>
+        <div class='hero-layout'>
 
-            <div style='flex:1.2; min-width:0;'>
-                <div style='font-size:3rem; font-weight:800; color:#151515;
-                            line-height:1.15; margin-bottom:14px;'>
+            <div class='hero-copy'>
+                <div class='hero-title'>
                     Know your money.<br>Fix the leaks.
                 </div>
-                <div style='font-size:1.2rem; font-weight:600;
-                            color:#86a7cf; margin-bottom:16px;'>
+                <div class='hero-subtitle'>
                     A personal money checkup from your own UPI data.
                 </div>
-                <div style='font-size:0.98rem; color:#6c675f;
-                            line-height:1.75; max-width:480px;'>
+                <div class='hero-body'>
                     Upload a CSV and see what is quietly shaping your month:
                     repeat spends, avoidable leaks, unusual payments, and the
                     habits that deserve a tiny reset. No judgment. Just clarity.
                 </div>
             </div>
 
-            <div style='flex:1; display:flex; flex-wrap:wrap; gap:16px;
-                        align-content:flex-start; padding-top:8px;'>
+            <div class='hero-chips'>
                 {"".join([
-                    f"<div style='background:white; border:1px solid #e5ddd0; "
-                    f"padding:12px 18px; border-radius:999px; font-size:0.9rem; "
-                    f"font-weight:600; color:#151515; "
-                    f"box-shadow:0 1px 3px rgba(0,0,0,0.05);'>{chip}</div>"
+                    f"<div class='hero-chip'>{chip}</div>"
                     for chip in [
                         "Find silent leaks",
                         "Spot repeat charges",
@@ -191,7 +297,7 @@ if not st.session_state.data_loaded:
     </div>
     """
 
-    components.html(hero_html, height=340, scrolling=False)
+    components.html(hero_html, height=420, scrolling=False)
 
     st.divider()
     st.markdown("<br>", unsafe_allow_html=True)

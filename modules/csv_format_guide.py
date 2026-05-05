@@ -43,7 +43,7 @@ def render_csv_guide():
                                    ("Credit Amount", False), ("Transaction Amount", False)]:
                 st.markdown(f"`{name}`" + (" ✦" if primary else ""))
 
-        st.caption("✦ = verified working with your parser")
+        st.caption("✦ = verified working with the parser")
         st.divider()
 
         # ── Recommended ───────────────────────────────────────────────────────
