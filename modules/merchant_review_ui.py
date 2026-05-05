@@ -95,8 +95,8 @@ def render_merchant_review(df, user_id, *, load_and_process_fn=None, key="mercha
     st.markdown("<div class='section-header'>Review Merchant Categories</div>",
                 unsafe_allow_html=True)
     st.markdown(
-        f"<small style='color:#8A8AB0'>Found "
-        f"<b style='color:#E0E0F0'>{len(unique)}</b> unique payees — "
+        f"<small style='color:#6B7280'>Found "
+        f"<b style='color:#111827'>{len(unique)}</b> unique payees — "
         f"sorted by frequency. Fix wrong categories; rules apply to all future uploads.</small>",
         unsafe_allow_html=True,
     )
@@ -144,7 +144,7 @@ def render_merchant_review(df, user_id, *, load_and_process_fn=None, key="mercha
 
             c1.markdown(
                 f"<div style='padding-top:5px; font-family:\"Space Mono\",monospace; "
-                f"font-size:0.76rem; color:#C8C8E8; word-break:break-all;'>"
+                f"font-size:0.76rem; color:#2D3748; word-break:break-all;'>"
                 f"{raw_key}</div>",
                 unsafe_allow_html=True,
             )
@@ -177,7 +177,7 @@ def render_merchant_review(df, user_id, *, load_and_process_fn=None, key="mercha
         st.markdown("<br>", unsafe_allow_html=True)
         submitted = st.form_submit_button(
             f"💾  Save {len(new_mapping)} rules",
-            use_container_width=True, type="primary",
+            use_container_width=True
         )
 
     if submitted:

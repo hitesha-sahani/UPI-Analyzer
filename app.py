@@ -166,16 +166,17 @@ div[data-testid="stPlotlyChart"] {
 
 /* Nudge cards */
 .nudge-card {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border: 1px solid rgba(108,99,255,0.25);
-    border-left: 3px solid var(--accent-purple);
-    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #e8eaf2;
+    border-left: 4px solid #6C63FF;
+    border-radius: 12px;
     padding: 14px 18px;
     margin-bottom: 10px;
     font-family: 'DM Sans', sans-serif;
     font-size: 0.88rem;
-    color: var(--text-primary);
+    color: #2d3748;
     line-height: 1.6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 /* Badges */
@@ -261,6 +262,30 @@ div[data-testid="stDataFrame"] {
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(108,99,255,0.7); }
+
+/* All Streamlit buttons */
+div.stButton > button {
+    background: linear-gradient(135deg, #6C63FF, #4ECDC4);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    transition: all 0.2s ease;
+}
+
+/* Hover effect */
+div.stButton > button:hover {
+    background: linear-gradient(135deg, #5a52e0, #3dbbb2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108,99,255,0.3);
+}
+
+/* Optional: remove ugly focus border */
+div.stButton > button:focus {
+    outline: none;
+    box-shadow: none;
+}            
 
 body {
     letter-spacing: 0.2px;
