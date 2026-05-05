@@ -26,7 +26,7 @@ from modules.deduplicator     import (
     get_clean_df
 )
 from modules.pages import PAGE_RENDERERS
-from modules.pages.common import PageContext
+from modules.pages.common import PageContext, apply_app_theme
 from modules.pages.duplicate_review import render_duplicate_review
 from modules.ai_advisor import (build_financial_context)
 from modules.csv_format_guide import render_csv_guide
@@ -38,252 +38,6 @@ def _img_to_b64(path: str) -> str:
 
 logo_b64 = _img_to_b64("MoneyOS_Logo.png")
 # ── Custom CSS ──────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
-:root {
-    --bg-primary:   #0f0f1a;
-    --bg-card:      #1a1a2e;
-    --bg-card2:     #16213e;
-    --accent-purple:#6C63FF;
-    --accent-teal:  #4ECDC4;
-    --accent-red:   #FF6B6B;
-    --accent-yellow:#FFD93D;
-    --text-primary: #E0E0F0;
-    --text-muted:   #8A8AB0;
-}
-
-.stApp { 
-    background: var(--bg-primary); 
-}
-
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f0f1a, #141428);
-    border-right: 1px solid rgba(108,99,255,0.2);
-}
-
-/* Sidebar radio enhancement */
-div[data-testid="stSidebar"] label[data-baseweb="radio"] > div {
-    padding: 8px 10px;
-    border-radius: 8px;
-    transition: 0.2s;
-}
-div[data-testid="stSidebar"] label[data-baseweb="radio"]:hover > div {
-    background: rgba(108,99,255,0.15);
-}
-div[data-testid="stSidebar"] input:checked + div {
-    background: rgba(108,99,255,0.25);
-    border-left: 3px solid #6C63FF;
-}
-
-/* Cards */
-.kpi-card {
-    background: linear-gradient(145deg, #1a1a2e, #141425);
-    border: 1px solid rgba(108,99,255,0.2);
-    border-radius: 12px;
-    padding: 20px 24px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-    transition: 0.2s ease;
-}
-.kpi-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(108,99,255,0.25);
-}
-.kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent-purple), var(--accent-teal));
-}
-
-.kpi-value {
-    font-family: 'Space Mono', monospace;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.kpi-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 4px;
-}
-
-.kpi-delta {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.82rem;
-    margin-top: 6px;
-}
-
-/* Section headers */
-.section-header {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    padding: 8px 0 12px;
-    border-bottom: 1px solid rgba(108,99,255,0.15);
-    margin-bottom: 16px;
-    position: relative;
-}
-.section-header::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 40px;
-    height: 2px;
-    background: #6C63FF;
-}
-
-/* Plotly charts container */
-div[data-testid="stPlotlyChart"] {
-    background: #1a1a2e;
-    padding: 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(108,99,255,0.15);
-}
-
-/* Nudge cards */
-.nudge-card {
-    background: #ffffff;
-    border: 1px solid #e8eaf2;
-    border-left: 4px solid #6C63FF;
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin-bottom: 10px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.88rem;
-    color: #2d3748;
-    line-height: 1.6;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-}
-.badge-high   { background: rgba(255,107,107,0.2); color: #FF6B6B; border: 1px solid #FF6B6B; }
-.badge-medium { background: rgba(255,159,67,0.2); color: #FF9F43;  border: 1px solid #FF9F43; }
-.badge-low    { background: rgba(255,217,61,0.2); color: #FFD93D;  border: 1px solid #FFD93D; }
-.badge-clean  { background: rgba(78,205,196,0.2); color: #4ECDC4;  border: 1px solid #4ECDC4; }
-
-/* Rows */
-.sub-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    background: var(--bg-card);
-    border-radius: 8px;
-    margin-bottom: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Hero */
-.hero {
-    background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 60%, #1a0f2e 100%);
-    border: 1px solid rgba(108,99,255,0.2);
-    border-radius: 16px;
-    padding: 32px 40px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-}
-.hero::after {
-    content: '₹';
-    position: absolute;
-    right: 40px; top: -10px;
-    font-size: 120px;
-    font-family: 'Space Mono', monospace;
-    color: rgba(108,99,255,0.06);
-    font-weight: 700;
-}
-
-.hero h1 {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: #E0E0F0;
-    margin: 0 0 6px;
-}
-
-.hero p {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    color: #8A8AB0;
-    margin: 0;
-}
-.full-width-guide [data-testid="stExpander"] {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-/* Layout spacing */
-.block-container {
-    padding-top: 1.5rem;
-    padding-bottom: 1rem;
-}
-
-/* Tables */
-div[data-testid="stDataFrame"] {
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(108,99,255,0.7); }
-
-/* All Streamlit buttons */
-div.stButton > button {
-    background: linear-gradient(135deg, #6C63FF, #4ECDC4);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 0.6rem 1rem;
-    transition: all 0.2s ease;
-}
-
-/* Hover effect */
-div.stButton > button:hover {
-    background: linear-gradient(135deg, #5a52e0, #3dbbb2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(108,99,255,0.3);
-}
-
-/* Optional: remove ugly focus border */
-div.stButton > button:focus {
-    outline: none;
-    box-shadow: none;
-}            
-
-body {
-    letter-spacing: 0.2px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ──────────────────────────────────────────────────────────────────────────────
-# DATA LOADING  (cached)
-# ──────────────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
                          extra_bytes_list: tuple = (), user_id: str = "user_1"):
@@ -391,7 +145,7 @@ if not st.session_state.data_loaded:
                  style='border-radius:8px;'/>
             <div>
                 <div style='font-size:1.1rem; font-weight:700; color:#151515;'>Vittā</div>
-                <div style='font-size:0.72rem; color:#1769ff; letter-spacing:0.1em;
+                <div style='font-size:0.72rem; color:#8aa8cd; letter-spacing:0.1em;
                             text-transform:uppercase;'>Money OS</div>
             </div>
         </div>
@@ -404,7 +158,7 @@ if not st.session_state.data_loaded:
                     Know your money.<br>Fix the leaks.
                 </div>
                 <div style='font-size:1.2rem; font-weight:600;
-                            color:#1769ff; margin-bottom:16px;'>
+                            color:#86a7cf; margin-bottom:16px;'>
                     A personal money checkup from your own UPI data.
                 </div>
                 <div style='font-size:0.98rem; color:#6c675f;
@@ -462,7 +216,7 @@ if not st.session_state.data_loaded:
 
     with col2:
         st.markdown("""
-        <div style='background:#f0f4ff; border:1px solid #d0dbff;
+        <div style='background:#f4f8fc; border:1px solid #d6e0ec;
                     border-radius:16px; padding:32px 28px; text-align:center;'>
             <div style='font-size:2rem; margin-bottom:10px;'>🗂️</div>
             <div style='font-family:"DM Sans",sans-serif; font-weight:700;
@@ -566,7 +320,7 @@ with st.sidebar:
         padding: 9px 14px !important;
         border-radius: 0 8px 8px 0 !important;
         border-left: 3px solid transparent !important;
-        color: #8A8AB0 !important;
+        color: #7f8ea1 !important;
         font-family: 'DM Sans', sans-serif !important;
         font-size: 0.88rem !important;
         font-weight: 500 !important;
@@ -575,14 +329,14 @@ with st.sidebar:
         margin-bottom: 2px !important;
     }
     div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background: rgba(108,99,255,0.10) !important;
-        color: #C8C8E8 !important;
-        border-left: 3px solid rgba(108,99,255,0.3) !important;
+        background: #f3f7fc !important;
+        color: #6484ac !important;
+        border-left: 3px solid #d7e4f2 !important;
     }
     div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
-        background: rgba(108,99,255,0.15) !important;
-        color: #E0E0F0 !important;
-        border-left: 3px solid #6C63FF !important;
+        background: #edf4fb !important;
+        color: #537098 !important;
+        border-left: 3px solid #8daed4 !important;
         font-weight: 600 !important;
         border-radius: 0 8px 8px 0 !important;
     }
@@ -611,25 +365,25 @@ with st.sidebar:
         stats_sidebar = get_summary_stats(df)
         st.markdown("""
         <div style='font-family:"DM Sans",sans-serif; font-size:0.78rem; font-weight:600;
-                    letter-spacing:.08em; text-transform:uppercase; color:#8A8AB0;
+                    letter-spacing:.08em; text-transform:uppercase; color:#8090a5;
                     margin-bottom:8px; padding-left:4px;'>Quick Stats</div>
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div style='background:#F0EFFF; border:1px solid rgba(108,99,255,0.2);
+        <div style='background:#f5f9fd; border:1px solid #d7e3f0;
                     border-radius:10px; padding:10px 14px; margin-bottom:8px;
-                    border-top: 2px solid #6C63FF;'>
+                    border-top: 2px solid #8daed4;'>
             <div style='font-family:"DM Sans",sans-serif; font-size:0.67rem;
-                        color:#8A8AB0; text-transform:uppercase; letter-spacing:0.1em;
+                        color:#8090a5; text-transform:uppercase; letter-spacing:0.1em;
                         margin-bottom:2px;'>Total Spent</div>
             <div style='font-family:"Space Mono",monospace; font-size:1.25rem;
                         font-weight:700; color:#1a1a2e;'>₹{stats_sidebar['total_spent']:,.0f}</div>
         </div>
-        <div style='background:#F0EFFF; border:1px solid rgba(108,99,255,0.2);
+        <div style='background:#f5f9fd; border:1px solid #d7e3f0;
                     border-radius:10px; padding:10px 14px; margin-bottom:8px;
-                    border-top: 2px solid #4ECDC4;'>
+                    border-top: 2px solid #a9c2df;'>
             <div style='font-family:"DM Sans",sans-serif; font-size:0.67rem;
-                        color:#8A8AB0; text-transform:uppercase; letter-spacing:0.1em;
+                        color:#8090a5; text-transform:uppercase; letter-spacing:0.1em;
                         margin-bottom:2px;'>Transactions</div>
             <div style='font-family:"Space Mono",monospace; font-size:1.25rem;
                         font-weight:700; color:#1a1a2e;'>{stats_sidebar['total_transactions']}</div>
@@ -843,197 +597,12 @@ if "ai_context" not in st.session_state:
         df, cat_summary, insights, anomaly_info
     )
 
-st.markdown("""
-<style>
-:root {
-    --mos-bg: #f7f5f0;
-    --mos-panel: #ffffff;
-    --mos-ink: #151515;
-    --mos-muted: #6c675f;
-    --mos-line: #ded9cf;
-    --mos-accent: #1769ff;
-}
-.stApp { background: var(--mos-bg); color: var(--mos-ink); }
-section[data-testid="stSidebar"] {
-    background: #ffffff;
-    border-right: 1px solid var(--mos-line);
-}
-.block-container { max-width: 1180px; padding-top: 1.25rem; }
-.hero {
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    padding: 8px 0 20px;
-    margin-bottom: 8px;
-}
-.hero::after { content: none; }
-.hero h1 { color: var(--mos-ink); font-size: 2.05rem; letter-spacing: 0; }
-.hero p { color: var(--mos-muted); font-size: 0.94rem; }
-.dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    background: linear-gradient(135deg, #ffffff 0%, #f7f5f0 100%);
-    border: 1px solid var(--mos-line);
-    border-radius: 8px;
-    padding: 18px 20px;
-    margin: 2px 0 22px;
-    box-shadow: 0 1px 2px rgba(20,20,20,0.04);
-}
-.dashboard-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 240px;
-}
-.dashboard-logo {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    object-fit: cover;
-    border: 1px solid var(--mos-line);
-}
-.dashboard-title {
-    color: var(--mos-ink) !important;
-    font-size: 1.42rem;
-    font-weight: 800;
-    line-height: 1.1;
-}
-.dashboard-subtitle {
-    color: var(--mos-muted) !important;
-    font-size: 0.82rem;
-    margin-top: 4px;
-}
-.dashboard-meta {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
-}
-.header-chip {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 118px;
-    background: #ffffff;
-    border: 1px solid var(--mos-line);
-    border-radius: 8px;
-    padding: 8px 10px;
-}
-.header-chip-label {
-    color: var(--mos-muted) !important;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-.header-chip-value {
-    color: var(--mos-ink) !important;
-    font-size: 0.88rem;
-    font-weight: 700;
-    line-height: 1.25;
-}
-@media (max-width: 760px) {
-    .dashboard-header {
-        align-items: flex-start;
-        flex-direction: column;
-        padding: 16px;
-    }
-    .dashboard-meta {
-        justify-content: flex-start;
-        width: 100%;
-    }
-    .header-chip {
-        flex: 1 1 140px;
-    }
-}
-.kpi-card, .money-card, .insight-card, .action-card, .leak-card {
-    background: var(--mos-panel);
-    border: 1px solid var(--mos-line);
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(20,20,20,0.04);
-}
-.kpi-card::before { content: none; }
-.kpi-card:hover { transform: none; box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
-.kpi-value { color: var(--mos-ink); font-family: 'DM Sans', sans-serif; font-size: 1.55rem; }
-.kpi-label { color: var(--mos-muted); letter-spacing: 0; text-transform: none; }
-.section-header { color: var(--mos-ink); border-bottom: 1px solid var(--mos-line); letter-spacing: 0; }
-.section-header::after { background: var(--mos-accent); width: 28px; }
-div[data-testid="stPlotlyChart"] {
-    background: var(--mos-panel);
-    border: 1px solid var(--mos-line);
-    border-radius: 8px;
-}
-.money-score {
-    font-size: 4.6rem;
-    line-height: 1;
-    color: var(--mos-ink);
-    font-weight: 800;
-    letter-spacing: 0;
-}
-.money-card { padding: 24px; min-height: 230px; }
-.insight-card, .leak-card, .action-card { padding: 18px 20px; margin-bottom: 12px; }
-.micro-label { color: var(--mos-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.card-title { color: var(--mos-ink); font-weight: 700; font-size: 1rem; margin-top: 6px; }
-.card-detail { color: var(--mos-muted); font-size: 0.9rem; line-height: 1.5; margin-top: 6px; }
-.amount-line { color: var(--mos-ink); font-weight: 800; font-size: 1.6rem; margin-top: 8px; }
-.action-card { background: #101010; color: #ffffff; border-color: #101010; }
-.action-card .micro-label, .action-card .card-detail { color: #cfcfcf; }
-.action-card .card-title { color: #ffffff; font-size: 1.08rem; }
-div, p, span, label, h1, h2, h3, h4, h5, h6,
-[data-testid="stMarkdownContainer"], [data-testid="stWidgetLabel"] {
-    color: var(--mos-ink);
-}
-section[data-testid="stSidebar"] div,
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] label {
-    color: var(--mos-ink) !important;
-}
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] div {
-    color: var(--mos-ink) !important;
-}
-.stTextInput input, .stSelectbox div[data-baseweb="select"] > div,
-.stNumberInput input {
-    background: #ffffff !important;
-    color: var(--mos-ink) !important;
-    border-color: var(--mos-line) !important;
-}
-div[data-testid="stDataFrame"] {
-    background: #ffffff;
-    border: 1px solid var(--mos-line);
-    border-radius: 8px;
-}
-.metric-row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-}
-.mini-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-}
-.mini-table td {
-    border-bottom: 1px solid var(--mos-line);
-    padding: 10px 4px;
-    color: var(--mos-ink);
-}
-.mini-table td:last-child {
-    text-align: right;
-    font-weight: 700;
-}
-</style>
-""", unsafe_allow_html=True)
+apply_app_theme()
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # HEADER (always shown)
-# ──────────────────────────────────────────────────────────────────────────────
-date_start = stats["date_range_start"].strftime("%d %b %Y") if pd.notna(stats["date_range_start"]) else "—"
-date_end   = stats["date_range_end"].strftime("%d %b %Y")   if pd.notna(stats["date_range_end"])   else "—"
-
+date_start = stats["date_range_start"].strftime("%d %b %Y") if pd.notna(stats["date_range_start"]) else "-"
+date_end = stats["date_range_end"].strftime("%d %b %Y") if pd.notna(stats["date_range_end"]) else "-"
 data_source_label = html.escape(str(data_source))
 transaction_count = f"{int(stats['total_transactions']):,}" if pd.notna(stats["total_transactions"]) else "0"
 

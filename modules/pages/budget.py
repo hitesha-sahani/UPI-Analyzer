@@ -13,6 +13,15 @@ from modules.budget_tracker import (
 from modules.pages.common import PageContext
 
 
+CHART_SPENT_COLOR = "#a8c4e2"
+CHART_PROJECTED_COLOR = "#d9c6a7"
+CHART_LIMIT_COLOR = "#d6a2a2"
+CHART_GRID_COLOR = "#e6dfd5"
+KPI_SPEND_COLOR = "#d19a9a"
+KPI_REMAINING_COLOR = "#8daed4"
+KPI_WARNING_COLOR = "#d2b084"
+
+
 def render(context: PageContext) -> None:
     st.markdown("<div class='section-header'>Budget Tracker</div>", unsafe_allow_html=True)
     st.markdown(
@@ -125,9 +134,9 @@ def render(context: PageContext) -> None:
     k1, k2, k3, k4 = st.columns(4)
     for col, label, value, color in [
         (k1, "Total budgeted", f"₹{total_budget:,.0f}", "#151515"),
-        (k2, "Total spent", f"₹{total_spent:,.0f}", "#FF6B6B"),
-        (k3, "Remaining", f"₹{max(total_budget - total_spent, 0):,.0f}", "#1769ff"),
-        (k4, "Categories over limit", str(over_count), "#FF9F43"),
+        (k2, "Total spent", f"₹{total_spent:,.0f}", KPI_SPEND_COLOR),
+        (k3, "Remaining", f"₹{max(total_budget - total_spent, 0):,.0f}", KPI_REMAINING_COLOR),
+        (k4, "Categories over limit", str(over_count), KPI_WARNING_COLOR),
     ]:
         with col:
             st.markdown(
@@ -145,7 +154,7 @@ def render(context: PageContext) -> None:
     if alerts:
         st.markdown("<div class='section-header'>Alerts</div>", unsafe_allow_html=True)
         for severity, category, message in alerts:
-            color = "#FF6B6B" if "Over" in severity else "#FF9F43" if "Breach" in severity else "#FFD93D"
+            color = "#d8aaaa" if "Over" in severity else "#dec19d" if "Breach" in severity else "#d8d2a8"
             st.markdown(
                 f"""
                 <div class='nudge-card' style='border-left-color:{color};'>
@@ -324,7 +333,7 @@ def _render_budget_chart(budget_status) -> None:
             name="Spent",
             x=valid["category"],
             y=valid["spent"],
-            marker_color="#1769ff",
+            marker_color=CHART_SPENT_COLOR,
             opacity=0.9,
         )
     )
@@ -333,7 +342,7 @@ def _render_budget_chart(budget_status) -> None:
             name="Projected month end",
             x=valid["category"],
             y=valid["projected_eom"],
-            marker_color="#FF9F43",
+            marker_color=CHART_PROJECTED_COLOR,
             opacity=0.45,
         )
     )
@@ -346,8 +355,8 @@ def _render_budget_chart(budget_status) -> None:
             marker=dict(
                 symbol="line-ew",
                 size=20,
-                color="#FF6B6B",
-                line=dict(width=2, color="#FF6B6B"),
+                color=CHART_LIMIT_COLOR,
+                line=dict(width=2, color=CHART_LIMIT_COLOR),
             ),
         )
     )
@@ -357,7 +366,7 @@ def _render_budget_chart(budget_status) -> None:
         font=dict(color="#151515"),
         barmode="overlay",
         xaxis=dict(showgrid=False, tickangle=-30, tickfont=dict(size=10)),
-        yaxis=dict(showgrid=True, gridcolor="#ede8e0", title="₹"),
+        yaxis=dict(showgrid=True, gridcolor=CHART_GRID_COLOR, title="₹"),
         legend=dict(orientation="h", y=1.12),
         margin=dict(l=20, r=20, t=40, b=90),
         height=360,

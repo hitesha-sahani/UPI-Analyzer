@@ -4,60 +4,6 @@ import streamlit as st
 from modules.deduplicator import get_dedup_report, get_duplicate_pairs
 
 
-def _inject_light_theme() -> None:
-    st.markdown("""
-    <style>
-    .stApp {
-        background: #f7f5f0 !important;
-        color: #151515 !important;
-    }
-    .block-container {
-        background: #f7f5f0 !important;
-    }
-    .kpi-card {
-        background: #ffffff !important;
-        border: 1px solid #ded9cf !important;
-        border-radius: 8px !important;
-        box-shadow: 0 1px 2px rgba(20,20,20,0.04) !important;
-    }
-    .kpi-card::before {
-        content: none !important;
-    }
-    .kpi-card:hover {
-        transform: none !important;
-        box-shadow: 0 1px 2px rgba(20,20,20,0.04) !important;
-    }
-    .kpi-value {
-        color: #151515 !important;
-        font-family: "DM Sans", sans-serif !important;
-    }
-    .kpi-label {
-        color: #6c675f !important;
-        letter-spacing: 0 !important;
-        text-transform: none !important;
-    }
-    .section-header {
-        color: #151515 !important;
-        border-bottom: 1px solid #ded9cf !important;
-        letter-spacing: 0 !important;
-    }
-    .section-header::after {
-        background: #1769ff !important;
-        width: 28px !important;
-    }
-    div[data-testid="stDataFrame"] {
-        background: #ffffff !important;
-        border: 1px solid #ded9cf !important;
-        border-radius: 8px !important;
-    }
-    div, p, span, label, h1, h2, h3, h4, h5, h6,
-    [data-testid="stMarkdownContainer"], [data-testid="stWidgetLabel"] {
-        color: #151515;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-
 def _money(value) -> str:
     return f"₹{value:,.0f}"
 
@@ -229,8 +175,6 @@ def _render_explainer() -> None:
 
 
 def render_duplicate_review(merged_raw: pd.DataFrame | None) -> None:
-    _inject_light_theme()
-
     st.markdown("<div class='section-header'>Account Deduplication</div>", unsafe_allow_html=True)
     st.markdown(
         "<small style='color:#6c675f;'>Detects duplicate transactions across multiple "

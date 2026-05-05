@@ -6,6 +6,9 @@ import streamlit as st
 from modules.pages.common import PageContext, format_inr
 
 
+SPEND_SPLIT_COLORS = ["#dce8f5", "#c9dbef", "#b7cfe8", "#a8c4e2", "#97b8d9", "#86abd0"]
+
+
 def render(context: PageContext) -> None:
     score_col, action_col = st.columns([0.9, 1.4])
 
@@ -139,7 +142,10 @@ def render(context: PageContext) -> None:
             y=top_categories["category"],
             x=top_categories["total_spent"],
             orientation="h",
-            marker_color="#1769ff",
+            marker=dict(
+                color=SPEND_SPLIT_COLORS[-len(top_categories):],
+                line=dict(color="#b7c8da", width=1),
+            ),
             text=[format_inr(value) for value in top_categories["total_spent"]],
             textposition="outside",
             hovertemplate="<b>%{y}</b><br>₹%{x:,.0f}<extra></extra>",

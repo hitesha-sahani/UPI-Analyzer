@@ -82,10 +82,10 @@ def get_total_spend(df: pd.DataFrame, start: date, end: date) -> float:
 
 def get_status_color(pct: float) -> tuple:
     """Returns (status_label, hex_color) based on % used."""
-    if pct >= 100:   return "Over Budget", "#FF6B6B"
-    elif pct >= 80:  return "Warning",     "#FF9F43"
-    elif pct >= 50:  return "On Track",    "#FFD93D"
-    else:            return "Healthy",     "#6BCB77"
+    if pct >= 100:   return "Over Budget", "#e4a4a4"
+    elif pct >= 80:  return "Warning",     "#e6c59b"
+    elif pct >= 50:  return "On Track",    "#d8d6a4"
+    else:            return "Healthy",     "#b8d7c0"
 
 
 def compute_monthly_overview(
