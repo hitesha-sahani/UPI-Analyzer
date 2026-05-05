@@ -7,7 +7,7 @@ import html
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Vittā Money OS",
+    page_title="Clarity Money OS",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -256,9 +256,9 @@ if not st.session_state.data_loaded:
     <div class='hero-shell'>
 
         <div class='hero-brand'>
-            <img src='data:image/png;base64,{logo_b64}' alt='Vitta logo'/>
+            <img src='data:image/png;base64,{logo_b64}' alt='Clarity logo'/>
             <div>
-                <div class='hero-brand-name'>Vitt?</div>
+                <div class='hero-brand-name'>Clarity</div>
                 <div class='hero-brand-sub'>Money OS</div>
             </div>
         </div>
@@ -715,9 +715,9 @@ transaction_count = f"{int(stats['total_transactions']):,}" if pd.notna(stats["t
 st.markdown(f"""
 <div class='dashboard-header'>
     <div class='dashboard-brand'>
-        <img class='dashboard-logo' src='data:image/png;base64,{logo_b64}' alt='Vitta logo'/>
+        <img class='dashboard-logo' src='data:image/png;base64,{logo_b64}' alt='Clarity logo'/>
         <div>
-            <div class='dashboard-title'>Vitta Money OS</div>
+            <div class='dashboard-title'>Clarity Money OS</div>
             <div class='dashboard-subtitle'>Your financial command center</div>
         </div>
     </div>
@@ -748,7 +748,7 @@ if st.session_state.get("show_merchant_review") and not st.session_state.get("me
                 Take 2 minutes for better insights
             </div>
             <div style='font-size:0.88rem; color:#6c675f; line-height:1.7; margin-bottom:20px;'>
-                Vittā auto-categorizes your transactions, but reviewing your
+                Clarity auto-categorizes your transactions, but reviewing your
                 merchants helps us get it right — especially for local vendors,
                 transfers to family, and recurring payments.
             </div>
