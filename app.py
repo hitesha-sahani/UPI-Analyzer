@@ -317,7 +317,7 @@ if not st.session_state.data_loaded:
         </div>
         """, unsafe_allow_html=True)
 
-        uploaded_file = st.file_uploader("Upload primary CSV or PDF", type=["csv", "pdf"])
+        uploaded_file = st.file_uploader("Upload primary CSV or PhonePe PDF", type=["csv", "pdf"])
         extra_files   = st.file_uploader(
             "Add more accounts (optional)",
             type=["csv", "pdf"],
