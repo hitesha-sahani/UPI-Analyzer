@@ -42,10 +42,14 @@ logo_b64 = _img_to_b64("MoneyOS_Logo.png")
 def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
                          extra_bytes_list: tuple = (), user_id: str = "user_1"):
     import io
+    from modules.phonepe_pdf_parser import parse_phonepe_pdf
     dfs, names = [], []
 
     if file_bytes:
-        raw = parse_csv(io.BytesIO(file_bytes))
+        if file_bytes[:4] == b"%PDF":
+            raw = parse_phonepe_pdf(io.BytesIO(file_bytes))
+        else:
+            raw = parse_csv(io.BytesIO(file_bytes))
         dfs.append(raw); names.append("Primary Account")
     elif use_sample:
         sample_path = Path(__file__).parent / "data" / "sample_transactions.csv"
@@ -57,7 +61,10 @@ def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
     # Additional accounts
     for i, eb in enumerate(extra_bytes_list):
         try:
-            extra_raw = parse_csv(io.BytesIO(eb))
+            if eb[:4] == b"%PDF":
+                extra_raw = parse_phonepe_pdf(io.BytesIO(eb))
+            else:
+                extra_raw = parse_csv(io.BytesIO(eb))
             dfs.append(extra_raw)
             names.append(f"Account {i+2}")
         except Exception:
@@ -75,9 +82,7 @@ def load_and_process(file_bytes: bytes = None, use_sample: bool = False,
 
     df = categorize_transactions(clean, user_id=user_id)
     df = detect_anomalies(df)
-    return df, merged   # return both: clean processed + raw merged with dup flags
-
-
+    return df, merged
 # ──────────────────────────────────────────────────────────────────────────────
 # LANDING PAGE + DATA LOADING
 # ──────────────────────────────────────────────────────────────────────────────
@@ -312,10 +317,10 @@ if not st.session_state.data_loaded:
         </div>
         """, unsafe_allow_html=True)
 
-        uploaded_file = st.file_uploader("Upload primary CSV", type=["csv"])
+        uploaded_file = st.file_uploader("Upload primary CSV or PDF", type=["csv", "pdf"])
         extra_files   = st.file_uploader(
             "Add more accounts (optional)",
-            type=["csv"],
+            type=["csv", "pdf"],
             accept_multiple_files=True,
         )
 
