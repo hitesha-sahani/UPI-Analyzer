@@ -456,7 +456,7 @@ with st.sidebar:
         page = st.session_state.page_override
         st.session_state.page_override = None
     else:
-        nav_pages = ["Dashboard", "Learn", "Leaks", "Transactions", "Budget", "Merchants", "AI Coach"]
+        nav_pages = ["Dashboard", "Timeline", "Learn", "Leaks", "Transactions", "Budget", "Merchants", "AI Coach"]
 
         # Only show Duplicate Review if multiple sources were uploaded
         if merged_raw is not None and merged_raw["source"].nunique() > 1:

@@ -1,0 +1,156 @@
+Date,Description,Amount,Type,UPI_ID,Balance
+2024-04-01,Salary Credit Acme Tech,95500.00,Credit,employer@hdfcbank,61200.00
+2024-04-03,Ola Cab,-228.00,Debit,ola@hdfcbank,156700.00
+2024-04-05,Ola Cab,-404.00,Debit,ola@hdfcbank,156472.00
+2024-04-06,Amazon Shopping,-1024.00,Debit,amazon@apl,156068.00
+2024-04-06,Indian Oil Fuel,-1975.00,Debit,iocl@oksbi,155044.00
+2024-04-07,Netflix Subscription,-649.00,Debit,netflix@axisbank,153069.00
+2024-04-09,Ola Cab,-168.00,Debit,ola@hdfcbank,152420.00
+2024-04-10,Rent Transfer,-22000.00,Debit,landlord@okicici,152252.00
+2024-04-10,Rent Transfer,-22000.00,Debit,landlord@okicici,234524.00
+2024-04-12,Amazon Shopping,-3759.00,Debit,amazon@apl,130252.00
+2024-04-14,Netflix Subscription,-649.00,Debit,netflix@axisbank,126493.00
+2024-04-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,125071.00
+2024-04-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,206404.00
+2024-04-14,Zomato Order,-773.00,Debit,zomato@icici,125844.00
+2024-04-15,Zomato Order,-315.00,Debit,zomato@icici,115071.00
+2024-04-17,Ola Cab,-215.00,Debit,ola@hdfcbank,114756.00
+2024-04-18,Amazon Refund,899.00,Credit,amazonrefund@apl,114541.00
+2024-04-19,DMart Grocery,-3389.00,Debit,dmart@dmart,115440.00
+2024-04-21,Amazon Shopping,-1325.00,Debit,amazon@apl,112051.00
+2024-04-21,DMart Grocery,-1640.00,Debit,dmart@dmart,110726.00
+2024-04-22,Uber Ride,-314.00,Debit,uber@axl,109086.00
+2024-04-24,Zomato Order,-619.00,Debit,zomato@icici,108772.00
+2024-04-25,HDFC Credit Card Bill,-7100.00,Debit,hdfccard@hdfc,108153.00
+2024-04-27,Apollo Pharmacy,-764.00,Debit,apollopharmacy@hdfc,101053.00
+2024-04-28,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,96613.00
+2024-04-28,DMart Grocery,-3676.00,Debit,dmart@dmart,100289.00
+2024-04-29,Uber Ride,-217.00,Debit,uber@axl,95814.00
+2024-05-01,Salary Credit Acme Tech,99000.00,Credit,employer@hdfcbank,95597.00
+2024-05-03,BigBasket Grocery,-1791.00,Debit,bigbasket@axisbank,194597.00
+2024-05-05,Zomato Order,-775.00,Debit,zomato@icici,192806.00
+2024-05-06,Swiggy Order,-231.00,Debit,swiggy@yesbank,191490.00
+2024-05-06,Zomato Order,-541.00,Debit,zomato@icici,192031.00
+2024-05-07,PVR Cinema,-1349.00,Debit,pvr@icicibank,191259.00
+2024-05-09,Netflix Subscription,-649.00,Debit,netflix@axisbank,189910.00
+2024-05-10,Rent Transfer,-22000.00,Debit,landlord@okicici,189261.00
+2024-05-10,Rent Transfer,-22000.00,Debit,landlord@okicici,281795.00
+2024-05-12,Zomato Order,-740.00,Debit,zomato@icici,167261.00
+2024-05-14,Swiggy Order,-370.00,Debit,swiggy@yesbank,166521.00
+2024-05-14,Swiggy Order,-249.00,Debit,swiggy@yesbank,166151.00
+2024-05-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,165902.00
+2024-05-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,258353.00
+2024-05-15,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,155902.00
+2024-05-17,DMart Grocery,-1891.00,Debit,dmart@dmart,155103.00
+2024-05-19,Spotify Premium,-119.00,Debit,spotify@oksbi,153212.00
+2024-05-21,Spotify Premium,-119.00,Debit,spotify@oksbi,153093.00
+2024-05-21,Spotify Premium,-119.00,Debit,spotify@oksbi,152974.00
+2024-05-22,DMart Grocery,-4092.00,Debit,dmart@dmart,152855.00
+2024-05-24,Spotify Premium,-119.00,Debit,spotify@oksbi,148763.00
+2024-05-25,HDFC Credit Card Bill,-7100.00,Debit,hdfccard@hdfc,148644.00
+2024-05-27,DMart Grocery,-4143.00,Debit,dmart@dmart,141544.00
+2024-05-28,Jio Recharge,-559.00,Debit,jio@okaxis,137401.00
+2024-05-28,Ola Cab,-265.00,Debit,ola@hdfcbank,136842.00
+2024-05-29,DMart Grocery,-1936.00,Debit,dmart@dmart,136577.00
+2024-06-01,Salary Credit Acme Tech,92000.00,Credit,employer@hdfcbank,134641.00
+2024-06-03,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,226641.00
+2024-06-05,Amazon Shopping,-1745.00,Debit,amazon@apl,225842.00
+2024-06-06,Apollo Pharmacy,-1333.00,Debit,apollopharmacy@hdfc,223908.00
+2024-06-06,Swiggy Order,-189.00,Debit,swiggy@yesbank,224097.00
+2024-06-07,Ola Cab,-167.00,Debit,ola@hdfcbank,222575.00
+2024-06-09,Netflix Subscription,-649.00,Debit,netflix@axisbank,222408.00
+2024-06-10,Rent Transfer,-22000.00,Debit,landlord@okicici,221759.00
+2024-06-12,Netflix Subscription,-649.00,Debit,netflix@axisbank,199759.00
+2024-06-14,Swiggy Order,-430.00,Debit,swiggy@yesbank,198812.00
+2024-06-14,Uber Ride,-298.00,Debit,uber@axl,199110.00
+2024-06-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,198382.00
+2024-06-15,Blinkit Grocery,-833.00,Debit,blinkit@axisbank,188382.00
+2024-06-17,Uber Ride,-344.00,Debit,uber@axl,187549.00
+2024-06-18,Amazon Refund,899.00,Credit,amazonrefund@apl,187205.00
+2024-06-19,Netflix Subscription,-649.00,Debit,netflix@axisbank,188104.00
+2024-06-21,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,187336.00
+2024-06-21,Spotify Premium,-119.00,Debit,spotify@oksbi,187455.00
+2024-06-21,UPI From Rahul,2500.00,Credit,friend@oksbi,186537.00
+2024-06-22,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,189037.00
+2024-06-24,Uber Ride,-255.00,Debit,uber@axl,188238.00
+2024-06-25,HDFC Credit Card Bill,-5400.00,Debit,hdfccard@hdfc,187983.00
+2024-06-27,Ola Cab,-413.00,Debit,ola@hdfcbank,182583.00
+2024-06-28,BigBasket Grocery,-1762.00,Debit,bigbasket@axisbank,181911.00
+2024-06-28,Uber Ride,-259.00,Debit,uber@axl,182170.00
+2024-06-29,Jio Recharge,-574.00,Debit,jio@okaxis,180149.00
+2024-06-30,MakeMyTrip Hotel,-4200.00,Debit,makemytrip@hdfc,179575.00
+2024-07-01,Salary Credit Acme Tech,95500.00,Credit,employer@hdfcbank,175375.00
+2024-07-03,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,270875.00
+2024-07-05,Netflix Subscription,-649.00,Debit,netflix@axisbank,270076.00
+2024-07-06,BigBasket Grocery,-1108.00,Debit,bigbasket@axisbank,269427.00
+2024-07-06,Uber Ride,-444.00,Debit,uber@axl,268319.00
+2024-07-07,Indian Oil Fuel,-3298.00,Debit,iocl@oksbi,267875.00
+2024-07-09,BigBasket Grocery,-1080.00,Debit,bigbasket@axisbank,264577.00
+2024-07-10,Rent Transfer,-22000.00,Debit,landlord@okicici,263497.00
+2024-07-12,Zomato Order,-561.00,Debit,zomato@icici,241497.00
+2024-07-14,BigBasket Grocery,-1561.00,Debit,bigbasket@axisbank,240490.00
+2024-07-14,Uber Ride,-446.00,Debit,uber@axl,240936.00
+2024-07-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,238929.00
+2024-07-15,Jio Recharge,-625.00,Debit,jio@okaxis,228929.00
+2024-07-17,Netflix Subscription,-649.00,Debit,netflix@axisbank,228304.00
+2024-07-19,Netflix Subscription,-649.00,Debit,netflix@axisbank,227655.00
+2024-07-21,Jio Recharge,-475.00,Debit,jio@okaxis,226749.00
+2024-07-21,Swiggy Order,-257.00,Debit,swiggy@yesbank,227006.00
+2024-07-22,Netflix Subscription,-649.00,Debit,netflix@axisbank,226274.00
+2024-07-24,Blinkit Grocery,-1442.00,Debit,blinkit@axisbank,225625.00
+2024-07-25,HDFC Credit Card Bill,-6200.00,Debit,hdfccard@hdfc,224183.00
+2024-07-27,Indian Oil Fuel,-1861.00,Debit,iocl@oksbi,217983.00
+2024-07-28,Blinkit Grocery,-331.00,Debit,blinkit@axisbank,215587.00
+2024-07-28,Zomato Order,-535.00,Debit,zomato@icici,216122.00
+2024-07-29,Blinkit Grocery,-680.00,Debit,blinkit@axisbank,215256.00
+2024-08-01,Salary Credit Acme Tech,99000.00,Credit,employer@hdfcbank,214576.00
+2024-08-03,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,313576.00
+2024-08-05,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,312777.00
+2024-08-06,Blinkit Grocery,-1396.00,Debit,blinkit@axisbank,311978.00
+2024-08-06,Indian Oil Fuel,-2871.00,Debit,iocl@oksbi,310582.00
+2024-08-07,BigBasket Grocery,-1869.00,Debit,bigbasket@axisbank,307711.00
+2024-08-09,Uber Ride,-529.00,Debit,uber@axl,305842.00
+2024-08-10,Rent Transfer,-22000.00,Debit,landlord@okicici,305313.00
+2024-08-12,Uber Ride,-331.00,Debit,uber@axl,283313.00
+2024-08-14,Jio Recharge,-569.00,Debit,jio@okaxis,282579.00
+2024-08-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,282010.00
+2024-08-14,Zomato Order,-403.00,Debit,zomato@icici,282982.00
+2024-08-15,DMart Grocery,-4143.00,Debit,dmart@dmart,272010.00
+2024-08-17,Jio Recharge,-526.00,Debit,jio@okaxis,267867.00
+2024-08-18,Amazon Refund,899.00,Credit,amazonrefund@apl,267341.00
+2024-08-19,BigBasket Grocery,-1552.00,Debit,bigbasket@axisbank,268240.00
+2024-08-21,DMart Grocery,-1558.00,Debit,dmart@dmart,266234.00
+2024-08-21,Jio Recharge,-454.00,Debit,jio@okaxis,266688.00
+2024-08-22,Amazon Shopping,-1361.00,Debit,amazon@apl,264676.00
+2024-08-24,Ola Cab,-365.00,Debit,ola@hdfcbank,263315.00
+2024-08-25,HDFC Credit Card Bill,-7100.00,Debit,hdfccard@hdfc,262950.00
+2024-08-27,Spotify Premium,-119.00,Debit,spotify@oksbi,255850.00
+2024-08-28,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,255589.00
+2024-08-28,Ola Cab,-142.00,Debit,ola@hdfcbank,255731.00
+2024-08-29,DMart Grocery,-2744.00,Debit,dmart@dmart,254790.00
+2024-09-01,Salary Credit Acme Tech,92000.00,Credit,employer@hdfcbank,252046.00
+2024-09-03,BigBasket Grocery,-1184.00,Debit,bigbasket@axisbank,344046.00
+2024-09-05,BigBasket Grocery,-2338.00,Debit,bigbasket@axisbank,342862.00
+2024-09-06,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,340524.00
+2024-09-06,BESCOM Electricity Bill,-1658.00,Debit,bescom@okhdfc,339725.00
+2024-09-07,Zomato Order,-338.00,Debit,zomato@icici,338067.00
+2024-09-09,BigBasket Grocery,-1631.00,Debit,bigbasket@axisbank,337729.00
+2024-09-10,Rent Transfer,-22000.00,Debit,landlord@okicici,336098.00
+2024-09-12,Spotify Premium,-119.00,Debit,spotify@oksbi,314098.00
+2024-09-14,Spotify Premium,-119.00,Debit,spotify@oksbi,313648.00
+2024-09-14,Zerodha SIP,-10000.00,Debit,zerodha@hdfcbank,313529.00
+2024-09-14,Zomato Order,-331.00,Debit,zomato@icici,313979.00
+2024-09-15,Blinkit Grocery,-892.00,Debit,blinkit@axisbank,303529.00
+2024-09-17,DMart Grocery,-3883.00,Debit,dmart@dmart,302637.00
+2024-09-19,Netflix Subscription,-649.00,Debit,netflix@axisbank,298754.00
+2024-09-21,DMart Grocery,-3761.00,Debit,dmart@dmart,298105.00
+2024-09-21,Ola Cab,-260.00,Debit,ola@hdfcbank,294344.00
+2024-09-21,UPI From Rahul,2500.00,Credit,friend@oksbi,294084.00
+2024-09-22,Zomato Order,-666.00,Debit,zomato@icici,296584.00
+2024-09-24,Zomato Order,-752.00,Debit,zomato@icici,295918.00
+2024-09-25,HDFC Credit Card Bill,-6200.00,Debit,hdfccard@hdfc,295166.00
+2024-09-27,Jio Recharge,-619.00,Debit,jio@okaxis,288966.00
+2024-09-28,Spotify Premium,-119.00,Debit,spotify@oksbi,287829.00
+2024-09-28,Swiggy Order,-518.00,Debit,swiggy@yesbank,288347.00
+2024-09-29,Airtel Postpaid Bill,-799.00,Debit,airtel@airtel,287710.00
+2024-09-30,MakeMyTrip Hotel,-7800.00,Debit,makemytrip@hdfc,286911.00
