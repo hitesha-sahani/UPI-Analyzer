@@ -47,8 +47,6 @@ Clarity Money OS is a Streamlit personal finance app that analyzes UPI, wallet, 
 │   └── user_overrides.json
 ├── data/
 │   ├── sample_transactions.csv
-│   ├── demo_same_account_export_a.csv
-│   └── demo_same_account_export_b.csv
 ├── docs/
 │   ├── README.md
 │   ├── user-manual.md
