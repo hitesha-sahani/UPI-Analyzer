@@ -362,6 +362,3 @@ Core app areas:
 - financial timeline
 - AI coaching
 
-## License
-
-License is currently not declared in the repository. Add a `LICENSE` file before public distribution.
