@@ -506,7 +506,10 @@ with st.sidebar:
                 "uploaded_file_bytes",
                 "extra_bytes",
                 "use_sample_data",
-                "data_source"
+                "data_source",
+                "show_merchant_review",
+                "merchant_review_done"
+
             ]:
                 if key in st.session_state:
                     del st.session_state[key]
