@@ -60,8 +60,8 @@ Built solo, with guidance from my mentor along the way.
 
 ## Try It
 
-- Live Demo → `YOUR_DEMO_LINK`
-- Demo Video → `YOUR_VIDEO_LINK`
+- Live Demo → `https://upi-spend-analyzer.streamlit.app/`
+- Demo Video → `VIDEO_LINK`
 
 ---
 
