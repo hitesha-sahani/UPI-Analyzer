@@ -71,7 +71,7 @@ Clarity Money OS is a Streamlit personal finance app that analyzes UPI, wallet, 
 ### 1. Clone or open the project
 
 ```bash
-cd "C:\Users\hites\UPI Analyzer Financial Coach"
+https://github.com/hitesha-sahani/UPI-Analyzer
 ```
 
 ### 2. Create a virtual environment
