@@ -61,7 +61,7 @@ Built solo, with guidance from my mentor along the way.
 ## Try It
 
 - Live Demo → `https://upi-spend-analyzer.streamlit.app/`
-- Demo Video → `VIDEO_LINK`
+- Demo Video → `https://drive.google.com/drive/folders/1L48xCOPJp2N-EKGvlpYRSHTEKeFevwnR`
 
 ---
 
