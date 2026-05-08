@@ -127,15 +127,6 @@ Built solo, with guidance from my mentor along the way.
 
 ---
 
-## Preview
-
-_Add screenshots or GIFs here_
-
-```md
-![Dashboard](docs/dashboard.png)
-```
-
----
 
 ## Tech Stack
 
